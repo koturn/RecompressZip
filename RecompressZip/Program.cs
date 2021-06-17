@@ -1,11 +1,13 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
-using System.Collections.Generic;
+using System.Linq;
 using System.Runtime.InteropServices;
 using System.Security;
 using System.Text;
+using System.Threading.Tasks;
 using ZopfliSharp;
 
 using NLog;
@@ -60,23 +62,29 @@ namespace RecompressZip
         static void RecompressZip(BinaryReader reader, BinaryWriter writer)
         {
             var signature = ReadSignature(reader);
-            var resultList = new List<CompressionResult>();
 
+            var taskFactory = new TaskFactory(new LimitedConcurrencyLevelTaskScheduler(Environment.ProcessorCount));
+            var taskList = new List<Task<CompressionResult>>();
             while (signature == (uint)SignatureType.LocalFileHeader)
             {
-                var cr = new CompressionResult
-                {
-                    offset = (uint)writer.BaseStream.Position
-                };
-
-                var (length, compressedLength) = RecompressEntry(reader, writer);
-
-                cr.comp_size = compressedLength;
-                cr.uncomp_size = length;
-                resultList.Add(cr);
-
+                var offset = (uint)writer.BaseStream.Position;
+                taskList.Add(RecompressEntryAsync(reader, writer, taskFactory, taskList.Count)
+                    .ContinueWith(task =>
+                    {
+                        var result = task.Result;
+                        return new CompressionResult
+                        {
+                            offset = offset,
+                            comp_size = result.CompressedLength,
+                            uncomp_size = result.Length,
+                        };
+                    }));
                 signature = ReadSignature(reader);
             }
+
+            Task.WaitAll(taskList.ToArray());
+
+            var resultList = taskList.Select(task => task.Result).ToList();
 
             int listCnt = 0;
             var central_dir_offset = writer.BaseStream.Position;
@@ -100,7 +108,7 @@ namespace RecompressZip
             }
         }
 
-        private static (uint Length, uint CompressedLength) RecompressEntry(BinaryReader reader, BinaryWriter writer)
+        private static async Task<(uint Length, uint CompressedLength)> RecompressEntryAsync(BinaryReader reader, BinaryWriter writer, TaskFactory taskFactory, int procIndex)
         {
             var header = ReadLocalFileHeader(reader);
             header.signature = (uint)SignatureType.LocalFileHeader;
@@ -109,8 +117,11 @@ namespace RecompressZip
             // Is not deflate
             if (header.method != 8)
             {
-                WriteLocalFileHeader(writer, header);
-                writer.Write(src);
+                lock (writer)
+                {
+                    WriteLocalFileHeader(writer, header);
+                    writer.Write(src);
+                }
                 return (header.uncomp_size, header.comp_size);
             }
 
@@ -125,34 +136,41 @@ namespace RecompressZip
                 var sw = Stopwatch.StartNew();
 
                 var entryName = Encoding.ASCII.GetString(header.ext, 0, header.filename_len);
-                _logger.Info("Compress {0} ...", entryName);
 
-                // Take a long time
-                var recompressedData = Zopfli.Compress(
-                    decompressedMs.GetBuffer(),
-                    0,
-                    (int)decompressedMs.Length,
-                    ZopfliFormat.Deflate);
+                // Take a long long time ...
+                var recompressedData = await taskFactory.StartNew(() =>
+                {
+                    _logger.Info("[{0}] Compress {1} ...", procIndex, entryName);
+                    return Zopfli.Compress(
+                        decompressedMs.GetBuffer(),
+                        0,
+                        (int)decompressedMs.Length,
+                        ZopfliFormat.Deflate);
+                });
 
                 _logger.Log(
                     recompressedData.Length < src.Length ? LogLevel.Info : LogLevel.Warn, 
-                    "Compress {0} done: {1:F3} seconds, {2:F3} Bytes -> {3:F3} Bytes (deflated {4:F2}%)",
+                    "[{0}] Compress {1} done: {2:F3} seconds, {3:F3} KiB -> {4:F3} KiB (deflated {5:F2}%)",
+                    procIndex,
                     entryName,
                     sw.ElapsedMilliseconds / 1000.0,
                     ToKiB(src.Length),
                     ToKiB(recompressedData.Length),
                     CalcDeflatedRate(src.Length, recompressedData.Length) * 100.0);
 
-                if (recompressedData.Length < src.Length)
+                lock (writer)
                 {
-                    header.comp_size = (uint)recompressedData.Length;
-                    WriteLocalFileHeader(writer, header);
-                    writer.Write(recompressedData);
-                }
-                else
-                {
-                    WriteLocalFileHeader(writer, header);
-                    writer.Write(src);
+                    if (recompressedData.Length < src.Length)
+                    {
+                        header.comp_size = (uint)recompressedData.Length;
+                        WriteLocalFileHeader(writer, header);
+                        writer.Write(recompressedData);
+                    }
+                    else
+                    {
+                        WriteLocalFileHeader(writer, header);
+                        writer.Write(src);
+                    }
                 }
 
                 return (header.uncomp_size, header.comp_size);
