@@ -1,0 +1,5 @@
+LIBRARY zopflipng
+
+EXPORTS
+	CZopfliPNGOptimize
+	CZopfliPNGSetDefaults

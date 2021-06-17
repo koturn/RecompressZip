@@ -1,0 +1,6 @@
+[submodule "zopfli"]
+	path = zopfli
+	url = https://github.com/google/zopfli
+[submodule "ZopfliSharp"]
+	path = ZopfliSharp
+	url = https://github.com/koturn/ZopfliSharp
