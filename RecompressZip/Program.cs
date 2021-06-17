@@ -74,9 +74,9 @@ namespace RecompressZip
                         var result = task.Result;
                         return new CompressionResult
                         {
-                            offset = offset,
-                            comp_size = result.CompressedLength,
-                            uncomp_size = result.Length,
+                            Offset = offset,
+                            CompressedLength = result.CompressedLength,
+                            Length = result.Length,
                         };
                     }));
                 signature = ReadSignature(reader);
@@ -92,9 +92,9 @@ namespace RecompressZip
             {
                 var header = ReadCentralDirectoryFileHeader(reader);
                 var cr = resultList[listCnt++];
-                header.comp_size = cr.comp_size;
-                header.uncomp_size = cr.uncomp_size;
-                header.offset = cr.offset;
+                header.CompressedLength = cr.CompressedLength;
+                header.Length = cr.Length;
+                header.Offset = cr.Offset;
                 WriteCentralDirectoryFileHeader(writer, header);
 
                 signature = ReadSignature(reader);
@@ -103,7 +103,7 @@ namespace RecompressZip
             if (signature == (uint)SignatureType.EndRecord)
             {
                 var header = ReadCentralDirectoryEndRecord(reader);
-                header.offset = (uint)central_dir_offset;
+                header.Offset = (uint)central_dir_offset;
                 WriteCentralDirectoryEndRecord(writer, header);
             }
         }
@@ -111,21 +111,21 @@ namespace RecompressZip
         private static async Task<(uint Length, uint CompressedLength)> RecompressEntryAsync(BinaryReader reader, BinaryWriter writer, TaskFactory taskFactory, int procIndex)
         {
             var header = ReadLocalFileHeader(reader);
-            header.signature = (uint)SignatureType.LocalFileHeader;
-            var src = reader.ReadBytes((int)header.comp_size);
+            header.Signature = (uint)SignatureType.LocalFileHeader;
+            var src = reader.ReadBytes((int)header.CompressedLength);
 
             // Is not deflate
-            if (header.method != 8)
+            if (header.Method != 8)
             {
                 lock (writer)
                 {
                     WriteLocalFileHeader(writer, header);
                     writer.Write(src);
                 }
-                return (header.uncomp_size, header.comp_size);
+                return (header.Length, header.CompressedLength);
             }
 
-            using (var decompressedMs = new MemoryStream((int)header.uncomp_size))
+            using (var decompressedMs = new MemoryStream((int)header.Length))
             {
                 using (var compressedMs = new MemoryStream(src))
                 using (var dds = new DeflateStream(compressedMs, CompressionMode.Decompress))
@@ -135,7 +135,7 @@ namespace RecompressZip
 
                 var sw = Stopwatch.StartNew();
 
-                var entryName = Encoding.ASCII.GetString(header.ext, 0, header.filename_len);
+                var entryName = Encoding.ASCII.GetString(header.ExtraData, 0, header.FileNameLength);
 
                 // Take a long long time ...
                 var recompressedData = await taskFactory.StartNew(() =>
@@ -162,7 +162,7 @@ namespace RecompressZip
                 {
                     if (recompressedData.Length < src.Length)
                     {
-                        header.comp_size = (uint)recompressedData.Length;
+                        header.CompressedLength = (uint)recompressedData.Length;
                         WriteLocalFileHeader(writer, header);
                         writer.Write(recompressedData);
                     }
@@ -173,7 +173,7 @@ namespace RecompressZip
                     }
                 }
 
-                return (header.uncomp_size, header.comp_size);
+                return (header.Length, header.CompressedLength);
             }
         }
 
@@ -186,109 +186,109 @@ namespace RecompressZip
         {
             var header = new LocalFileHeader
             {
-                signature = (uint)SignatureType.LocalFileHeader,
-                ver_extract = reader.ReadUInt16(),
-                bit_flag = reader.ReadUInt16(),
-                method = reader.ReadUInt16(),
-                not_used1 = reader.ReadUInt32(),
-                crc32 = reader.ReadUInt32(),
-                comp_size = reader.ReadUInt32(),
-                uncomp_size = reader.ReadUInt32(),
-                filename_len = reader.ReadUInt16(),
-                extra_len = reader.ReadUInt16()
+                Signature = (uint)SignatureType.LocalFileHeader,
+                VerExtract = reader.ReadUInt16(),
+                BitFlag = reader.ReadUInt16(),
+                Method = reader.ReadUInt16(),
+                Reserved = reader.ReadUInt32(),
+                Crc32 = reader.ReadUInt32(),
+                CompressedLength = reader.ReadUInt32(),
+                Length = reader.ReadUInt32(),
+                FileNameLength = reader.ReadUInt16(),
+                ExtraLength = reader.ReadUInt16()
             };
-            header.ext = reader.ReadBytes(header.filename_len + header.extra_len);
+            header.ExtraData = reader.ReadBytes(header.FileNameLength + header.ExtraLength);
 
             return header;
         }
 
         private static void WriteLocalFileHeader(BinaryWriter writer, LocalFileHeader header)
         {
-            writer.Write(header.signature);
-            writer.Write(header.ver_extract);
-            writer.Write(header.bit_flag);
-            writer.Write(header.method);
-            writer.Write(header.not_used1);
-            writer.Write(header.crc32);
-            writer.Write(header.comp_size);
-            writer.Write(header.uncomp_size);
-            writer.Write(header.filename_len);
-            writer.Write(header.extra_len);
-            writer.Write(header.ext);
+            writer.Write(header.Signature);
+            writer.Write(header.VerExtract);
+            writer.Write(header.BitFlag);
+            writer.Write(header.Method);
+            writer.Write(header.Reserved);
+            writer.Write(header.Crc32);
+            writer.Write(header.CompressedLength);
+            writer.Write(header.Length);
+            writer.Write(header.FileNameLength);
+            writer.Write(header.ExtraLength);
+            writer.Write(header.ExtraData);
         }
 
         static CentralDirectoryFileHeader ReadCentralDirectoryFileHeader(BinaryReader reader)
         {
             var header = new CentralDirectoryFileHeader
             {
-                signature = (uint)SignatureType.CentralDirectoryFileHeader,
-                ver_made_by = reader.ReadUInt16(),
-                ver_extract = reader.ReadUInt16(),
-                bit_flag = reader.ReadUInt16(),
-                method = reader.ReadUInt16(),
-                not_used1 = reader.ReadUInt32(),
-                crc32 = reader.ReadUInt32(),
-                comp_size = reader.ReadUInt32(),
-                uncomp_size = reader.ReadUInt32(),
-                filename_len = reader.ReadUInt16(),
-                extra_len = reader.ReadUInt16(),
-                comment_len = reader.ReadUInt16(),
-                not_used2 = reader.ReadUInt64(),
-                offset = reader.ReadUInt32()
+                Signature = (uint)SignatureType.CentralDirectoryFileHeader,
+                VerMadeBy = reader.ReadUInt16(),
+                VerExtract = reader.ReadUInt16(),
+                BitFlag = reader.ReadUInt16(),
+                Method = reader.ReadUInt16(),
+                Reserved1 = reader.ReadUInt32(),
+                Crc32 = reader.ReadUInt32(),
+                CompressedLength = reader.ReadUInt32(),
+                Length = reader.ReadUInt32(),
+                FileNameLength = reader.ReadUInt16(),
+                ExtraLength = reader.ReadUInt16(),
+                CommentLength = reader.ReadUInt16(),
+                Reserved2 = reader.ReadUInt64(),
+                Offset = reader.ReadUInt32()
             };
-            header.ext = reader.ReadBytes(header.filename_len + header.extra_len + header.comment_len);
+            header.ExtraData = reader.ReadBytes(header.FileNameLength + header.ExtraLength + header.CommentLength);
 
             return header;
         }
 
         private static void WriteCentralDirectoryFileHeader(BinaryWriter writer, CentralDirectoryFileHeader header)
         {
-            writer.Write(header.signature);
-            writer.Write(header.ver_made_by);
-            writer.Write(header.ver_extract);
-            writer.Write(header.bit_flag);
-            writer.Write(header.method);
-            writer.Write(header.not_used1);
-            writer.Write(header.crc32);
-            writer.Write(header.comp_size);
-            writer.Write(header.uncomp_size);
-            writer.Write(header.filename_len);
-            writer.Write(header.extra_len);
-            writer.Write(header.comment_len);
-            writer.Write(header.not_used2);
-            writer.Write(header.offset);
-            writer.Write(header.ext);
+            writer.Write(header.Signature);
+            writer.Write(header.VerMadeBy);
+            writer.Write(header.VerExtract);
+            writer.Write(header.BitFlag);
+            writer.Write(header.Method);
+            writer.Write(header.Reserved1);
+            writer.Write(header.Crc32);
+            writer.Write(header.CompressedLength);
+            writer.Write(header.Length);
+            writer.Write(header.FileNameLength);
+            writer.Write(header.ExtraLength);
+            writer.Write(header.CommentLength);
+            writer.Write(header.Reserved2);
+            writer.Write(header.Offset);
+            writer.Write(header.ExtraData);
         }
 
         static CentralDirectoryEndRecord ReadCentralDirectoryEndRecord(BinaryReader reader)
         {
             var header = new CentralDirectoryEndRecord
             {
-                signature = (uint)SignatureType.EndRecord,
-                num_disks = reader.ReadUInt16(),
-                disk = reader.ReadUInt16(),
-                num_records = reader.ReadUInt16(),
-                total_records = reader.ReadUInt16(),
-                central_dir_size = reader.ReadUInt32(),
-                offset = reader.ReadUInt32(),
-                comment_len = reader.ReadUInt16()
+                Signature = (uint)SignatureType.EndRecord,
+                NumDisks = reader.ReadUInt16(),
+                Disk = reader.ReadUInt16(),
+                NumRecords = reader.ReadUInt16(),
+                TotalRecords = reader.ReadUInt16(),
+                CentralDirectorySize = reader.ReadUInt32(),
+                Offset = reader.ReadUInt32(),
+                CommentLength = reader.ReadUInt16()
             };
-            header.ext = reader.ReadBytes(header.comment_len);
+            header.ExtraData = reader.ReadBytes(header.CommentLength);
 
             return header;
         }
 
         private static void WriteCentralDirectoryEndRecord(BinaryWriter writer, CentralDirectoryEndRecord header)
         {
-            writer.Write(header.signature);
-            writer.Write(header.num_disks);
-            writer.Write(header.disk);
-            writer.Write(header.num_records);
-            writer.Write(header.total_records);
-            writer.Write(header.central_dir_size);
-            writer.Write(header.offset);
-            writer.Write(header.comment_len);
-            writer.Write(header.ext);
+            writer.Write(header.Signature);
+            writer.Write(header.NumDisks);
+            writer.Write(header.Disk);
+            writer.Write(header.NumRecords);
+            writer.Write(header.TotalRecords);
+            writer.Write(header.CentralDirectorySize);
+            writer.Write(header.Offset);
+            writer.Write(header.CommentLength);
+            writer.Write(header.ExtraData);
         }
 
         /// <summary>
@@ -349,57 +349,57 @@ namespace RecompressZip
 
     public struct CompressionResult
     {
-        public uint comp_size;
-        public uint uncomp_size;
-        public uint offset;
+        public uint CompressedLength;
+        public uint Length;
+        public uint Offset;
     }
 
     public class Header
     {
-        public uint signature;
+        public uint Signature;
     };
 
     public class LocalFileHeader : Header
     {
-        public ushort ver_extract;
-        public ushort bit_flag;
-        public ushort method;
-        public uint not_used1;
-        public uint crc32;
-        public uint comp_size;
-        public uint uncomp_size;
-        public ushort filename_len;
-        public ushort extra_len;
-        public byte[] ext;
+        public ushort VerExtract { get; set; }
+        public ushort BitFlag { get; set; }
+        public ushort Method { get; set; }
+        public uint Reserved { get; set; }
+        public uint Crc32 { get; set; }
+        public uint CompressedLength { get; set; }
+        public uint Length { get; set; }
+        public ushort FileNameLength { get; set; }
+        public ushort ExtraLength { get; set; }
+        public byte[] ExtraData { get; set; }
     };
 
     public class CentralDirectoryFileHeader : Header
     {
-        public ushort ver_made_by;
-        public ushort ver_extract;
-        public ushort bit_flag;
-        public ushort method;
-        public uint not_used1;
-        public uint crc32;
-        public uint comp_size;
-        public uint uncomp_size;
-        public ushort filename_len;
-        public ushort extra_len;
-        public ushort comment_len;
-        public ulong not_used2;
-        public uint offset;
-        public byte[] ext;
+        public ushort VerMadeBy { get; set; }
+        public ushort VerExtract { get; set; }
+        public ushort BitFlag { get; set; }
+        public ushort Method { get; set; }
+        public uint Reserved1 { get; set; }
+        public uint Crc32 { get; set; }
+        public uint CompressedLength { get; set; }
+        public uint Length { get; set; }
+        public ushort FileNameLength { get; set; }
+        public ushort ExtraLength { get; set; }
+        public ushort CommentLength { get; set; }
+        public ulong Reserved2 { get; set; }
+        public uint Offset { get; set; }
+        public byte[] ExtraData { get; set; }
     };
 
     public class CentralDirectoryEndRecord : Header
     {
-        public ushort num_disks;
-        public ushort disk;
-        public ushort num_records;
-        public ushort total_records;
-        public uint central_dir_size;
-        public uint offset;
-        public ushort comment_len;
-        public byte[] ext;
+        public ushort NumDisks { get; set; }
+        public ushort Disk { get; set; }
+        public ushort NumRecords { get; set; }
+        public ushort TotalRecords { get; set; }
+        public uint CentralDirectorySize { get; set; }
+        public uint Offset { get; set; }
+        public ushort CommentLength { get; set; }
+        public byte[] ExtraData { get; set; }
     };
 }
