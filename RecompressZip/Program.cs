@@ -64,27 +64,28 @@ namespace RecompressZip
             var signature = ReadSignature(reader);
 
             var taskFactory = new TaskFactory(new LimitedConcurrencyLevelTaskScheduler(Environment.ProcessorCount));
-            var taskList = new List<Task<CompressionResult>>();
+            var taskList = new List<Task<(LocalFileHeader Header, byte[] CompressedData)>>();
             while (signature == (uint)SignatureType.LocalFileHeader)
             {
-                var offset = (uint)writer.BaseStream.Position;
-                taskList.Add(RecompressEntryAsync(reader, writer, taskFactory, taskList.Count)
-                    .ContinueWith(task =>
-                    {
-                        var result = task.Result;
-                        return new CompressionResult
-                        {
-                            Offset = offset,
-                            CompressedLength = result.CompressedLength,
-                            Length = result.Length,
-                        };
-                    }));
+                taskList.Add(RecompressEntryAsync(reader, taskFactory, taskList.Count));
                 signature = ReadSignature(reader);
             }
 
-            Task.WaitAll(taskList.ToArray());
+            var resultList = taskList.Select(task =>
+            {
+                var offset = (uint)writer.BaseStream.Position;
 
-            var resultList = taskList.Select(task => task.Result).ToList();
+                var result = task.Result;
+                WriteLocalFileHeader(writer, result.Header);
+                writer.Write(result.CompressedData);
+
+                return new CompressionResult
+                {
+                    Offset = offset,
+                    CompressedLength = (uint)result.CompressedData.Length,
+                    Length = result.Header.Length
+                };
+            }).ToList();
 
             int listCnt = 0;
             var central_dir_offset = writer.BaseStream.Position;
@@ -108,7 +109,7 @@ namespace RecompressZip
             }
         }
 
-        private static async Task<(uint Length, uint CompressedLength)> RecompressEntryAsync(BinaryReader reader, BinaryWriter writer, TaskFactory taskFactory, int procIndex)
+        private static async Task<(LocalFileHeader Header, byte[] CompressedData)> RecompressEntryAsync(BinaryReader reader, TaskFactory taskFactory, int procIndex)
         {
             var header = ReadLocalFileHeader(reader);
             header.Signature = (uint)SignatureType.LocalFileHeader;
@@ -117,12 +118,7 @@ namespace RecompressZip
             // Is not deflate
             if (header.Method != 8)
             {
-                lock (writer)
-                {
-                    WriteLocalFileHeader(writer, header);
-                    writer.Write(src);
-                }
-                return (header.Length, header.CompressedLength);
+                return (header, src);
             }
 
             using (var decompressedMs = new MemoryStream((int)header.Length))
@@ -133,47 +129,42 @@ namespace RecompressZip
                     dds.CopyTo(decompressedMs);
                 }
 
-                var sw = Stopwatch.StartNew();
-
-                var entryName = Encoding.ASCII.GetString(header.ExtraData, 0, header.FileNameLength);
-
-                // Take a long long time ...
                 var recompressedData = await taskFactory.StartNew(() =>
                 {
+                    var entryName = Encoding.ASCII.GetString(header.ExtraData, 0, header.FileNameLength);
                     _logger.Info("[{0}] Compress {1} ...", procIndex, entryName);
-                    return Zopfli.Compress(
+
+                    var sw = Stopwatch.StartNew();
+
+                    // Take a long long time ...
+                    var recompressedData = Zopfli.Compress(
                         decompressedMs.GetBuffer(),
                         0,
                         (int)decompressedMs.Length,
                         ZopfliFormat.Deflate);
+
+                    _logger.Log(
+                        recompressedData.Length < src.Length ? LogLevel.Info : LogLevel.Warn,
+                        "[{0}] Compress {1} done: {2:F3} seconds, {3:F3} KiB -> {4:F3} KiB (deflated {5:F2}%)",
+                        procIndex,
+                        entryName,
+                        sw.ElapsedMilliseconds / 1000.0,
+                        ToKiB(src.Length),
+                        ToKiB(recompressedData.Length),
+                        CalcDeflatedRate(src.Length, recompressedData.Length) * 100.0);
+
+                    return recompressedData;
                 });
 
-                _logger.Log(
-                    recompressedData.Length < src.Length ? LogLevel.Info : LogLevel.Warn, 
-                    "[{0}] Compress {1} done: {2:F3} seconds, {3:F3} KiB -> {4:F3} KiB (deflated {5:F2}%)",
-                    procIndex,
-                    entryName,
-                    sw.ElapsedMilliseconds / 1000.0,
-                    ToKiB(src.Length),
-                    ToKiB(recompressedData.Length),
-                    CalcDeflatedRate(src.Length, recompressedData.Length) * 100.0);
-
-                lock (writer)
+                if (recompressedData.Length < src.Length)
                 {
-                    if (recompressedData.Length < src.Length)
-                    {
-                        header.CompressedLength = (uint)recompressedData.Length;
-                        WriteLocalFileHeader(writer, header);
-                        writer.Write(recompressedData);
-                    }
-                    else
-                    {
-                        WriteLocalFileHeader(writer, header);
-                        writer.Write(src);
-                    }
+                    header.CompressedLength = (uint)recompressedData.Length;
+                    return (header, recompressedData);
                 }
-
-                return (header.Length, header.CompressedLength);
+                else
+                {
+                    return (header, src);
+                }
             }
         }
 
