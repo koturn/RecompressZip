@@ -181,12 +181,28 @@ namespace RecompressZip
         /// <param name="execOptions">Options for execution.</param>
         private static void RecompressZip(string srcFilePath, string dstFilePath, in ZopfliOptions zopfliOptions, ExecuteOptions execOptions)
         {
+            _logger.Info("Recompress start: {0}", srcFilePath);
+
+            var srcFileSize = new FileInfo(srcFilePath).Length;
+            var totalSw = Stopwatch.StartNew();
+            int entryCount;
+            long dstFileSize;
+
             using (var ifs = new FileStream(srcFilePath, FileMode.Open, FileAccess.Read, FileShare.Read))
-            using (var ofs = dstFilePath == null ? (Stream)new MemoryStream((int)new FileInfo(srcFilePath).Length)
+            using (var ofs = dstFilePath == null ? (Stream)new MemoryStream((int)srcFileSize)
                 : new FileStream(dstFilePath, FileMode.Create, FileAccess.Write, FileShare.Read))
             {
-                RecompressZip(ifs, ofs, zopfliOptions, execOptions);
+                entryCount = RecompressZip(ifs, ofs, zopfliOptions, execOptions);
+                dstFileSize = ofs.Length;
             }
+
+            _logger.Info("Recompress done: {0} ({1} files).", srcFilePath, entryCount);
+            _logger.Info("Elapsed time: {0:F3} seconds.", totalSw.ElapsedMilliseconds / 1000.0);
+            _logger.Info(
+                "{0:F3} MiB -> {1:F3} MiB (deflated {2:F2}%)",
+                ToMiB(srcFileSize),
+                ToMiB(dstFileSize),
+                CalcDeflatedRate(srcFileSize, dstFileSize) * 100.0);
 
             if (dstFilePath != null && execOptions.IsOverwrite)
             {
@@ -202,11 +218,11 @@ namespace RecompressZip
         /// <param name="dstStream">Destination <see cref="Stream"/>.</param>
         /// <param name="zopfliOptions">Options for zopfli.</param>
         /// <param name="execOptions">Options for execution.</param>
-        private static void RecompressZip(Stream srcStream, Stream dstStream, in ZopfliOptions zopfliOptions, ExecuteOptions execOptions)
+        private static int RecompressZip(Stream srcStream, Stream dstStream, in ZopfliOptions zopfliOptions, ExecuteOptions execOptions)
         {
             using var reader = new BinaryReader(srcStream, Encoding.Default, true);
             using var writer = new BinaryWriter(dstStream, Encoding.Default, true);
-            RecompressZip(reader, writer, zopfliOptions, execOptions);
+            return RecompressZip(reader, writer, zopfliOptions, execOptions);
         }
 
         /// <summary>
@@ -216,7 +232,8 @@ namespace RecompressZip
         /// <param name="writer">Destination <see cref="BinaryWriter"/>.</param>
         /// <param name="zopfliOptions">Options for zopfli.</param>
         /// <param name="execOptions">Options for execution.</param>
-        private static void RecompressZip(BinaryReader reader, BinaryWriter writer, in ZopfliOptions zopfliOptions, ExecuteOptions execOptions)
+        /// <returns>Number of entries in zip file.</returns>
+        private static int RecompressZip(BinaryReader reader, BinaryWriter writer, in ZopfliOptions zopfliOptions, ExecuteOptions execOptions)
         {
             var signature = ReadSignature(reader);
 
@@ -262,6 +279,8 @@ namespace RecompressZip
                 header.Offset = (uint)centralDirOffset;
                 WriteCentralDirectoryEndRecord(writer, header);
             }
+
+            return resultList.Count;
         }
 
         /// <summary>
@@ -505,6 +524,16 @@ namespace RecompressZip
         private static double ToKiB(long byteSize)
         {
             return byteSize / 1024.0;
+        }
+
+        /// <summary>
+        /// Converts a number in bytes to a number in MiB.
+        /// </summary>
+        /// <param name="byteSize">A number in bytes.</param>
+        /// <returns>A number in MiB.</returns>
+        private static double ToMiB(long byteSize)
+        {
+            return byteSize / 1024.0 / 1024.0;
         }
 
         /// <summary>
