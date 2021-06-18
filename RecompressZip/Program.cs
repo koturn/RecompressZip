@@ -221,7 +221,7 @@ namespace RecompressZip
             var signature = ReadSignature(reader);
 
             var taskList = new List<Task<(LocalFileHeader Header, byte[] CompressedData)>>();
-            while (signature == (uint)ZipSignature.LocalFileHeader)
+            while (signature == ZipSignature.LocalFileHeader)
             {
                 taskList.Add(RecompressEntryAsync(reader, zopfliOptions, execOptions, taskList.Count + 1));
                 signature = ReadSignature(reader);
@@ -244,7 +244,7 @@ namespace RecompressZip
 
             int listCnt = 0;
             var centralDirOffset = writer.BaseStream.Position;
-            while (signature == (uint)ZipSignature.CentralDirectoryFileHeader)
+            while (signature == ZipSignature.CentralDirectoryFileHeader)
             {
                 var header = ReadCentralDirectoryFileHeader(reader);
                 var cr = resultList[listCnt++];
@@ -256,7 +256,7 @@ namespace RecompressZip
                 signature = ReadSignature(reader);
             }
 
-            if (signature == (uint)ZipSignature.EndRecord)
+            if (signature == ZipSignature.EndRecord)
             {
                 var header = ReadCentralDirectoryEndRecord(reader);
                 header.Offset = (uint)centralDirOffset;
@@ -277,7 +277,7 @@ namespace RecompressZip
         private static async Task<(LocalFileHeader Header, byte[] CompressedData)> RecompressEntryAsync(BinaryReader reader, ZopfliOptions zopfliOptions, ExecuteOptions execOptions, int procIndex)
         {
             var header = ReadLocalFileHeader(reader);
-            header.Signature = (uint)ZipSignature.LocalFileHeader;
+            header.Signature = ZipSignature.LocalFileHeader;
             var src = reader.ReadBytes((int)header.CompressedLength);
 
             // Is not deflate
@@ -339,9 +339,9 @@ namespace RecompressZip
         /// </summary>
         /// <param name="reader"><see cref="BinaryReader"/> of zip data.</param>
         /// <returns>Signature.</returns>
-        static uint ReadSignature(BinaryReader reader)
+        static ZipSignature ReadSignature(BinaryReader reader)
         {
-            return reader.ReadUInt32();
+            return (ZipSignature)reader.ReadUInt32();
         }
 
         /// <summary>
@@ -353,7 +353,7 @@ namespace RecompressZip
         {
             var header = new LocalFileHeader
             {
-                Signature = (uint)ZipSignature.LocalFileHeader,
+                Signature = ZipSignature.LocalFileHeader,
                 VerExtract = reader.ReadUInt16(),
                 BitFlag = reader.ReadUInt16(),
                 Method = reader.ReadUInt16(),
@@ -378,7 +378,7 @@ namespace RecompressZip
         /// <param name="header"><see cref="LocalFileHeader"/> to write.</param>
         private static void WriteLocalFileHeader(BinaryWriter writer, LocalFileHeader header)
         {
-            writer.Write(header.Signature);
+            writer.Write((uint)header.Signature);
             writer.Write(header.VerExtract);
             writer.Write(header.BitFlag);
             writer.Write(header.Method);
@@ -402,7 +402,7 @@ namespace RecompressZip
         {
             var header = new CentralDirectoryFileHeader
             {
-                Signature = (uint)ZipSignature.CentralDirectoryFileHeader,
+                Signature = ZipSignature.CentralDirectoryFileHeader,
                 VerMadeBy = reader.ReadUInt16(),
                 VerExtract = reader.ReadUInt16(),
                 BitFlag = reader.ReadUInt16(),
@@ -434,7 +434,7 @@ namespace RecompressZip
         /// <param name="header"><see cref="CentralDirectoryFileHeader"/> to write.</param>
         private static void WriteCentralDirectoryFileHeader(BinaryWriter writer, CentralDirectoryFileHeader header)
         {
-            writer.Write(header.Signature);
+            writer.Write((uint)header.Signature);
             writer.Write(header.VerMadeBy);
             writer.Write(header.VerExtract);
             writer.Write(header.BitFlag);
@@ -465,7 +465,7 @@ namespace RecompressZip
         {
             var header = new CentralDirectoryEndRecord
             {
-                Signature = (uint)ZipSignature.EndRecord,
+                Signature = ZipSignature.EndRecord,
                 NumDisks = reader.ReadUInt16(),
                 Disk = reader.ReadUInt16(),
                 NumRecords = reader.ReadUInt16(),
@@ -486,7 +486,7 @@ namespace RecompressZip
         /// <param name="header"><see cref="CentralDirectoryEndRecord"/> to write.</param>
         private static void WriteCentralDirectoryEndRecord(BinaryWriter writer, CentralDirectoryEndRecord header)
         {
-            writer.Write(header.Signature);
+            writer.Write((uint)header.Signature);
             writer.Write(header.NumDisks);
             writer.Write(header.Disk);
             writer.Write(header.NumRecords);

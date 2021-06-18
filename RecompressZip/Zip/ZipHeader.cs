@@ -23,6 +23,6 @@
         ///   </item>
         /// </list>
         /// </summary>
-        public uint Signature;
+        public ZipSignature Signature { get; set; }
     };
 }
