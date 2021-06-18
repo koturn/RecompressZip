@@ -232,13 +232,13 @@ namespace RecompressZip
             {
                 var offset = (uint)writer.BaseStream.Position;
 
-                var result = task.Result;
-                WriteLocalFileHeader(writer, result.Header);
-                writer.Write(result.CompressedData);
+                var (header, compressedData) = task.Result;
+                WriteLocalFileHeader(writer, header);
+                writer.Write(compressedData);
 
                 return new CompressionResult(
-                    (uint)result.CompressedData.Length,
-                    result.Header.Length,
+                    (uint)compressedData.Length,
+                    header.Length,
                     offset);
             }).ToList();
 
