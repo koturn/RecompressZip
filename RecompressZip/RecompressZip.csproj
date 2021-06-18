@@ -3,6 +3,17 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net5.0</TargetFramework>
+    <Authors>koturn</Authors>
+    <Company>koturn</Company>
+    <Copyright>Copyright (C) 2021 koturn All Rights Reserverd.</Copyright>
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
+    <PackageProjectUrl>https://github.com/koturn/RecompressZip</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/koturn/RecompressZip</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <Version>0.1.0.0</Version>
+    <AssemblyVersion>0.1.0.0</AssemblyVersion>
+    <FileVersion>0.1.0.0</FileVersion>
+    <Description>Re-compressing tool with Zopfli Compression Algorithm for zip file.</Description>
   </PropertyGroup>
 
   <ItemGroup>
@@ -16,6 +27,10 @@
   <ItemGroup>
     <None Update="NLog.config">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\LICENSE">
+      <Pack>True</Pack>
+      <PackagePath></PackagePath>
     </None>
   </ItemGroup>
 
