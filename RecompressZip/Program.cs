@@ -8,9 +8,10 @@ using System.Runtime.InteropServices;
 using System.Security;
 using System.Text;
 using System.Threading.Tasks;
-using ZopfliSharp;
 
+using ArgumentParserSharp;
 using NLog;
+using ZopfliSharp;
 
 
 namespace RecompressZip
@@ -24,6 +25,11 @@ namespace RecompressZip
         /// Logging instance.
         /// </summary>
         private static readonly Logger _logger;
+        /// <summary>
+        /// <see cref="TaskFactory"/> with an upper limit on the number of tasks that can be executed concurrently
+        /// by <see cref="LimitedConcurrencyLevelTaskScheduler"/>.
+        /// </summary>
+        private static TaskFactory _taskFactory;
 
 
         /// <summary>
@@ -46,15 +52,122 @@ namespace RecompressZip
         /// <returns>Status code.</returns>
         static int Main(string[] args)
         {
-            if (args.Length != 2)
+            var (targets, zopfliOptions, execOptions) = ParseCommadLineArguments(args);
+            ShowParameters(zopfliOptions, execOptions);
+
+            _taskFactory = execOptions.NumberOfThreads > 0
+                ? new TaskFactory(new LimitedConcurrencyLevelTaskScheduler(execOptions.NumberOfThreads))
+                : new TaskFactory();
+
+            foreach (var target in targets)
             {
-                Console.Error.WriteLine("The number of arguments must be two.");
-                return 1;
+                RecompressZip(target, zopfliOptions, execOptions);
             }
 
-            RecompressZip(args[0], args[1]);
-
             return 0;
+        }
+
+        /// <summary>
+        /// Parse command line arguments and retrieve the result.
+        /// </summary>
+        /// <param name="args">Command-line arguments</param>
+        /// <returns>Parse result tuple.</returns>
+        private static (List<string> Targets, ZopfliOptions zopfliOptions, ExecuteOptions ExecOptions) ParseCommadLineArguments(string[] args)
+        {
+            var ap = new ArgumentParser()
+            {
+                Description = "<<< Zip Re-compressor using zopfli >>>"
+            };
+
+            var indent1 = ap.IndentString;
+            var indent2 = indent1 + indent1;
+
+            var zo = ZopfliOptions.GetDefault();
+
+            ap.Add('b', "block-split-max", OptionType.RequiredArgument,
+                "Maximum amount of blocks to split into (0 for unlimited, but this can give extreme results that hurt compression on some files).\n"
+                + indent2 + "Default: 15", "NUM", zo.BlockSplittingMax);
+            ap.Add('d', "dry-run", "Don't save any files, just see the console output.");
+            ap.AddHelp();
+            ap.Add('i', "num-iteration", OptionType.RequiredArgument,
+                "Maximum amount of times to rerun forward and backward pass to optimize LZ77 compression cost.\n"
+                + indent2 + "Default: 15",
+                "NUM", zo.NumIterations);
+            ap.Add('n', "num-thread", OptionType.RequiredArgument,
+                "Number of threads for re-compressing. 0 or negative value means unlimited.",
+                "N", ExecuteOptions.DefaultNumberOfThreads);
+            ap.Add('r', "replace-force", "Do the replacement even if the size of the recompressed data is larger than the size of the original data.");
+            ap.Add('v', "verbose", "Allow to output to stdout from zopfli.dll.");
+            ap.Add('V', "verbose-more", "Allow to output more information to stdout from zopfli.dll.");
+            ap.Add("no-block-split", "Don't splits the data in multiple deflate blocks with optimal choice for the block boundaries.");
+            ap.Add("no-overwrite", "Don't overwrite PNG files and create images to new zip archive file or directory.");
+
+            ap.Parse(args);
+
+            if (ap.GetValue<bool>('h'))
+            {
+                ap.ShowUsage();
+                Environment.Exit(0);
+            }
+
+            var targets = ap.Arguments;
+            if (targets.Count == 0)
+            {
+                Console.Error.WriteLine("Please specify one or more zip files.");
+                Environment.Exit(0);
+            }
+
+            zo.NumIterations = ap.GetValue<int>('i');
+            zo.BlockSplitting = !ap.GetValue<bool>("no-block-split");
+            zo.BlockSplittingMax = ap.GetValue<int>('b');
+            zo.Verbose = ap.GetValue<bool>('v');
+            zo.VerboseMore = ap.GetValue<bool>('V');
+
+            return (
+                targets,
+                zo,
+                new ExecuteOptions(
+                    ap.GetValue<int>('n'),
+                    !ap.GetValue<bool>("no-overwrite"),
+                    ap.GetValue<bool>('r'),
+                    ap.GetValue<bool>('d')));
+        }
+
+        /// <summary>
+        /// Output zopfli and execution options.
+        /// </summary>
+        /// <param name="zopfliOptions">Options for zopfli</param>
+        /// <param name="execOptions">Options for execution.</param>
+        private static void ShowParameters(in ZopfliOptions zopfliOptions, ExecuteOptions execOptions)
+        {
+            Console.WriteLine("- - - Zopfli Parameters - - -");
+            Console.WriteLine($"Number of Iterations: {zopfliOptions.NumIterations}");
+            Console.WriteLine($"Block Splitting: {zopfliOptions.BlockSplitting}");
+            Console.WriteLine($"Block Splitting Max: {zopfliOptions.BlockSplittingMax}");
+            Console.WriteLine($"Verbose: {zopfliOptions.Verbose}");
+            Console.WriteLine($"Verbose More: {zopfliOptions.VerboseMore}");
+
+            Console.WriteLine("- - - Execution Parameters - - -");
+            Console.WriteLine($"Number of Threads: {execOptions.NumberOfThreads}");
+            Console.WriteLine($"Overwrite: {execOptions.IsOverwrite}");
+            Console.WriteLine($"Replace Force: {execOptions.IsReplaceForce}");
+            Console.WriteLine($"Dry Run: {execOptions.IsDryRun}");
+
+            Console.WriteLine("- - -");
+        }
+
+        /// <summary>
+        /// Recompress zip file.
+        /// </summary>
+        /// <param name="srcFilePath">Source zip file path.</param>
+        /// <param name="zopfliOptions">Options for zopfli.</param>
+        /// <param name="execOptions">Options for execution.</param>
+        private static void RecompressZip(string srcFilePath, in ZopfliOptions zopfliOptions, ExecuteOptions execOptions)
+        {
+            var dstFilePath = execOptions.IsDryRun ? null : Path.Combine(
+                Path.GetDirectoryName(srcFilePath),
+                Path.GetFileNameWithoutExtension(srcFilePath) + ".zopfli.zip");
+            RecompressZip(srcFilePath, dstFilePath, zopfliOptions, execOptions);
         }
 
         /// <summary>
@@ -62,11 +175,22 @@ namespace RecompressZip
         /// </summary>
         /// <param name="srcFilePath">Source zip file path.</param>
         /// <param name="dstFilePath">Destination zip file path.</param>
-        static void RecompressZip(string srcFilePath, string dstFilePath)
+        /// <param name="zopfliOptions">Options for zopfli.</param>
+        /// <param name="execOptions">Options for execution.</param>
+        private static void RecompressZip(string srcFilePath, string dstFilePath, in ZopfliOptions zopfliOptions, ExecuteOptions execOptions)
         {
-            using var ifs = new FileStream(srcFilePath, FileMode.Open, FileAccess.Read, FileShare.Read);
-            using var ofs = new FileStream(dstFilePath, FileMode.Create, FileAccess.Write, FileShare.Read);
-            RecompressZip(ifs, ofs);
+            using (var ifs = new FileStream(srcFilePath, FileMode.Open, FileAccess.Read, FileShare.Read))
+            using (var ofs = dstFilePath == null ? (Stream)new MemoryStream((int)new FileInfo(srcFilePath).Length)
+                : new FileStream(dstFilePath, FileMode.Create, FileAccess.Write, FileShare.Read))
+            {
+                RecompressZip(ifs, ofs, zopfliOptions, execOptions);
+            }
+
+            if (dstFilePath != null && execOptions.IsOverwrite)
+            {
+                File.Delete(srcFilePath);
+                File.Move(dstFilePath, srcFilePath);
+            }
         }
 
         /// <summary>
@@ -74,11 +198,13 @@ namespace RecompressZip
         /// </summary>
         /// <param name="srcStream">Source <see cref="Stream"/> of zip file data.</param>
         /// <param name="dstStream">Destination <see cref="Stream"/>.</param>
-        static void RecompressZip(Stream srcStream, Stream dstStream)
+        /// <param name="zopfliOptions">Options for zopfli.</param>
+        /// <param name="execOptions">Options for execution.</param>
+        private static void RecompressZip(Stream srcStream, Stream dstStream, in ZopfliOptions zopfliOptions, ExecuteOptions execOptions)
         {
             using var reader = new BinaryReader(srcStream, Encoding.Default, true);
             using var writer = new BinaryWriter(dstStream, Encoding.Default, true);
-            RecompressZip(reader, writer);
+            RecompressZip(reader, writer, zopfliOptions, execOptions);
         }
 
         /// <summary>
@@ -86,15 +212,16 @@ namespace RecompressZip
         /// </summary>
         /// <param name="reader">Source <see cref="BinaryReader"/> of zip file data.</param>
         /// <param name="writer">Destination <see cref="BinaryWriter"/>.</param>
-        static void RecompressZip(BinaryReader reader, BinaryWriter writer)
+        /// <param name="zopfliOptions">Options for zopfli.</param>
+        /// <param name="execOptions">Options for execution.</param>
+        private static void RecompressZip(BinaryReader reader, BinaryWriter writer, in ZopfliOptions zopfliOptions, ExecuteOptions execOptions)
         {
             var signature = ReadSignature(reader);
 
-            var taskFactory = new TaskFactory(new LimitedConcurrencyLevelTaskScheduler(Environment.ProcessorCount));
             var taskList = new List<Task<(LocalFileHeader Header, byte[] CompressedData)>>();
             while (signature == (uint)SignatureType.LocalFileHeader)
             {
-                taskList.Add(RecompressEntryAsync(reader, taskFactory, taskList.Count));
+                taskList.Add(RecompressEntryAsync(reader, zopfliOptions, execOptions, taskList.Count + 1));
                 signature = ReadSignature(reader);
             }
 
@@ -143,10 +270,11 @@ namespace RecompressZip
         /// return the original data and its header as is.</para>
         /// </summary>
         /// <param name="reader">Source <see cref="BinaryReader"/> of zip file data.</param>
-        /// <param name="taskFactory">A task factory.</param>
+        /// <param name="zopfliOptions">Options for zopfli.</param>
+        /// <param name="execOptions">Options for execution.</param>
         /// <param name="procIndex">Process index for logging.</param>
         /// <returns>A tuple of new local file header and compressed data.</returns>
-        private static async Task<(LocalFileHeader Header, byte[] CompressedData)> RecompressEntryAsync(BinaryReader reader, TaskFactory taskFactory, int procIndex)
+        private static async Task<(LocalFileHeader Header, byte[] CompressedData)> RecompressEntryAsync(BinaryReader reader, ZopfliOptions zopfliOptions, ExecuteOptions execOptions, int procIndex)
         {
             var header = ReadLocalFileHeader(reader);
             header.Signature = (uint)SignatureType.LocalFileHeader;
@@ -166,7 +294,7 @@ namespace RecompressZip
                     dds.CopyTo(decompressedMs);
                 }
 
-                var recompressedData = await taskFactory.StartNew(() =>
+                var recompressedData = await _taskFactory.StartNew(() =>
                 {
                     var entryName = Encoding.ASCII.GetString(header.FileName);
                     _logger.Info("[{0}] Compress {1} ...", procIndex, entryName);
@@ -178,6 +306,7 @@ namespace RecompressZip
                         decompressedMs.GetBuffer(),
                         0,
                         (int)decompressedMs.Length,
+                        zopfliOptions,
                         ZopfliFormat.Deflate);
 
                     _logger.Log(
@@ -193,7 +322,7 @@ namespace RecompressZip
                     return recompressedData;
                 });
 
-                if (recompressedData.Length < src.Length)
+                if (recompressedData.Length < src.Length || execOptions.IsReplaceForce)
                 {
                     header.CompressedLength = (uint)recompressedData.Length;
                     return (header, recompressedData);

@@ -4,3 +4,6 @@
 [submodule "ZopfliSharp"]
 	path = ZopfliSharp
 	url = https://github.com/koturn/ZopfliSharp
+[submodule "ArgumentParserSharp"]
+	path = ArgumentParserSharp
+	url = https://github.com/koturn/ArgumentParserSharp

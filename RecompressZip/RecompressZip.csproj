@@ -21,6 +21,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\ArgumentParserSharp\ArgumentParserSharp\ArgumentParserSharp.csproj" />
     <ProjectReference Include="..\ZopfliSharp\ZopfliSharp\ZopfliSharp.csproj" />
   </ItemGroup>
 
