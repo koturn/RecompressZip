@@ -63,7 +63,19 @@ namespace RecompressZip
 
             foreach (var target in targets)
             {
-                RecompressZip(target, zopfliOptions, execOptions);
+                if (!File.Exists(target))
+                {
+                    _logger.Fatal("Specified file doesn't exist: {0}", target);
+                    continue;
+                }
+                try
+                {
+                    RecompressZip(target, zopfliOptions, execOptions);
+                }
+                catch (Exception ex)
+                {
+                    _logger.Fatal(ex, "An exception occured:");
+                }
             }
 
             return 0;
