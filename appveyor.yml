@@ -1,0 +1,40 @@
+version: 1.0.{build}
+image: Visual Studio 2019
+environment:
+  SOLUTION_NAME: RecompressZip
+  SOLUTION_FILE: $(SOLUTION_NAME).sln
+  CONFIG: Release
+  MAIN_PROJECT_OUTDIR: $(SOLUTION_NAME)\bin\$(CONFIG)\net5.0
+  ARTIFACTS_BASEDIR: Artifacts
+  ARTIFACTS_SUBDIR: $(SOLUTION_NAME)
+  ARTIFACTS_NAME: $(ARTIFACTS_SUBDIR).zip
+init:
+- cmd: '"C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Auxiliary\Build\vcvars64.bat"'
+build_script:
+- cmd: >-
+    git submodule update --init
+
+    msbuild /nologo /m /t:restore /p:Configuration=%CONFIG%;Platform="Any CPU" %SOLUTION_FILE%
+
+    msbuild /nologo /m /p:Configuration=%CONFIG%;Platform="Any CPU" %SOLUTION_FILE%
+
+    msbuild /nologo /m /p:Configuration=%CONFIG%;Platform="x86" %SOLUTION_FILE%
+
+    dotnet publish --nologo -c %CONFIG% -o %ARTIFACTS_BASEDIR%\%ARTIFACTS_SUBDIR% || set ERRORLEVEL=0
+
+    xcopy /Y %MAIN_PROJECT_OUTDIR%\x64\*.dll %ARTIFACTS_BASEDIR%\%ARTIFACTS_SUBDIR%\x64\
+
+    xcopy /Y %MAIN_PROJECT_OUTDIR%\x86\*.dll %ARTIFACTS_BASEDIR%\%ARTIFACTS_SUBDIR%\x86\
+
+    del %ARTIFACTS_BASEDIR%\%ARTIFACTS_SUBDIR%\*.pdb
+
+    cd %ARTIFACTS_BASEDIR%
+
+    7z a -mm=Deflate -mfb=258 -mpass=15 -r ..\%ARTIFACTS_NAME% %ARTIFACTS_SUBDIR%
+
+    cd ..
+test_script:
+- cmd: '%ARTIFACTS_BASEDIR%\%ARTIFACTS_SUBDIR%\%SOLUTION_NAME%.exe -h'
+artifacts:
+- path: $(ARTIFACTS_NAME)
+  name: .NET 5 binary of $(SOLUTION_NAME)
