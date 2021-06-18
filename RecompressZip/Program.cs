@@ -9,6 +9,8 @@ using System.Security;
 using System.Text;
 using System.Threading.Tasks;
 
+using RecompressZip.Zip;
+
 using ArgumentParserSharp;
 using NLog;
 using ZopfliSharp;
@@ -219,7 +221,7 @@ namespace RecompressZip
             var signature = ReadSignature(reader);
 
             var taskList = new List<Task<(LocalFileHeader Header, byte[] CompressedData)>>();
-            while (signature == (uint)SignatureType.LocalFileHeader)
+            while (signature == (uint)ZipSignature.LocalFileHeader)
             {
                 taskList.Add(RecompressEntryAsync(reader, zopfliOptions, execOptions, taskList.Count + 1));
                 signature = ReadSignature(reader);
@@ -234,17 +236,15 @@ namespace RecompressZip
                 WriteLocalFileHeader(writer, result.Header);
                 writer.Write(result.CompressedData);
 
-                return new CompressionResult
-                {
-                    Offset = offset,
-                    CompressedLength = (uint)result.CompressedData.Length,
-                    Length = result.Header.Length
-                };
+                return new CompressionResult(
+                    (uint)result.CompressedData.Length,
+                    result.Header.Length,
+                    offset);
             }).ToList();
 
             int listCnt = 0;
             var centralDirOffset = writer.BaseStream.Position;
-            while (signature == (uint)SignatureType.CentralDirectoryFileHeader)
+            while (signature == (uint)ZipSignature.CentralDirectoryFileHeader)
             {
                 var header = ReadCentralDirectoryFileHeader(reader);
                 var cr = resultList[listCnt++];
@@ -256,7 +256,7 @@ namespace RecompressZip
                 signature = ReadSignature(reader);
             }
 
-            if (signature == (uint)SignatureType.EndRecord)
+            if (signature == (uint)ZipSignature.EndRecord)
             {
                 var header = ReadCentralDirectoryEndRecord(reader);
                 header.Offset = (uint)centralDirOffset;
@@ -277,7 +277,7 @@ namespace RecompressZip
         private static async Task<(LocalFileHeader Header, byte[] CompressedData)> RecompressEntryAsync(BinaryReader reader, ZopfliOptions zopfliOptions, ExecuteOptions execOptions, int procIndex)
         {
             var header = ReadLocalFileHeader(reader);
-            header.Signature = (uint)SignatureType.LocalFileHeader;
+            header.Signature = (uint)ZipSignature.LocalFileHeader;
             var src = reader.ReadBytes((int)header.CompressedLength);
 
             // Is not deflate
@@ -353,7 +353,7 @@ namespace RecompressZip
         {
             var header = new LocalFileHeader
             {
-                Signature = (uint)SignatureType.LocalFileHeader,
+                Signature = (uint)ZipSignature.LocalFileHeader,
                 VerExtract = reader.ReadUInt16(),
                 BitFlag = reader.ReadUInt16(),
                 Method = reader.ReadUInt16(),
@@ -402,7 +402,7 @@ namespace RecompressZip
         {
             var header = new CentralDirectoryFileHeader
             {
-                Signature = (uint)SignatureType.CentralDirectoryFileHeader,
+                Signature = (uint)ZipSignature.CentralDirectoryFileHeader,
                 VerMadeBy = reader.ReadUInt16(),
                 VerExtract = reader.ReadUInt16(),
                 BitFlag = reader.ReadUInt16(),
@@ -465,7 +465,7 @@ namespace RecompressZip
         {
             var header = new CentralDirectoryEndRecord
             {
-                Signature = (uint)SignatureType.EndRecord,
+                Signature = (uint)ZipSignature.EndRecord,
                 NumDisks = reader.ReadUInt16(),
                 Disk = reader.ReadUInt16(),
                 NumRecords = reader.ReadUInt16(),
@@ -534,252 +534,4 @@ namespace RecompressZip
             public static extern bool SetDllDirectory([In] string path);
         }
     }
-
-    /// <summary>
-    /// Signature enum.
-    /// </summary>
-    public enum SignatureType : uint
-    {
-        /// <summary>
-        /// Signature for <see cref="LocalFileHeader"/>.
-        /// </summary>
-        LocalFileHeader = 0x04034b50,
-        /// <summary>
-        /// Signature for <see cref="CentralDirectoryFileHeader"/>
-        /// </summary>
-        CentralDirectoryFileHeader = 0x02014b50,
-        /// <summary>
-        /// Signature for <see cref="CentralDirectoryEndRecord"/>
-        /// </summary>
-        EndRecord = 0x06054b50
-    }
-
-    /// <summary>
-    /// Comression result.
-    /// </summary>
-    public struct CompressionResult
-    {
-        /// <summary>
-        /// Compressed size.
-        /// </summary>
-        public uint CompressedLength;
-        /// <summary>
-        /// Uncompressed size.
-        /// </summary>
-        public uint Length;
-        /// <summary>
-        /// Relative offset of local file header.
-        /// </summary>
-        public uint Offset;
-    }
-
-    /// <summary>
-    /// Common part of header, <see cref="LocalFileHeader"/>, <see cref="CentralDirectoryFileHeader"/>
-    /// or <see cref="CentralDirectoryEndRecord"/>.
-    /// </summary>
-    public class Header
-    {
-        /// <summary>
-        /// File header signature.
-        /// <list type="table">
-        ///   <listheader>
-        ///     <term><see cref="LocalFileHeader"/></term>
-        ///     <description>0x04034b50 (<see cref="SignatureType.LocalFileHeader"/>)</description>
-        ///   </listheader>
-        ///   <item>
-        ///     <term><see cref="CentralDirectoryFileHeader"/></term>
-        ///     <description>0x02014b50 (<see cref="SignatureType.CentralDirectoryFileHeader"/>)</description>
-        ///   </item>
-        ///   <item>
-        ///     <term><see cref="CentralDirectoryEndRecord"/></term>
-        ///     <description>0x06054b50 (<see cref="SignatureType.EndRecord"/>)</description>
-        ///   </item>
-        /// </list>
-        /// </summary>
-        public uint Signature;
-    };
-
-    /// <summary>
-    /// <para>Header for files.</para>
-    /// <para>All multi-byte values in the header are stored in little-endian byte order.</para>
-    /// <para>All length fields count the length in bytes.</para>
-    /// </summary>
-    public class LocalFileHeader : Header
-    {
-        /// <summary>
-        /// Version needed to extract (minimum).
-        /// </summary>
-        public ushort VerExtract { get; set; }
-        /// <summary>
-        /// General purpose bit flag.
-        /// </summary>
-        public ushort BitFlag { get; set; }
-        /// <summary>
-        /// Compression method; e.g. none = 0, DEFLATE = 8 (or "\0x08\0x00")
-        /// </summary>
-        public ushort Method { get; set; }
-        /// <summary>
-        /// File last modification time.
-        /// </summary>
-        public ushort LastModificationTime { get; set; }
-        /// <summary>
-        /// File last modification date.
-        /// </summary>
-        public ushort LastModificationDate { get; set; }
-        /// <summary>
-        /// CRC-32 of uncompressed data.
-        /// </summary>
-        public uint Crc32 { get; set; }
-        /// <summary>
-        /// Compressed size (or 0xffffffff for ZIP64).
-        /// </summary>
-        public uint CompressedLength { get; set; }
-        /// <summary>
-        /// Uncompressed size (or 0xffffffff for ZIP64).
-        /// </summary>
-        public uint Length { get; set; }
-        /// <summary>
-        /// File name length.
-        /// </summary>
-        public ushort FileNameLength { get; set; }
-        /// <summary>
-        /// Extra field length.
-        /// </summary>
-        public ushort ExtraLength { get; set; }
-        /// <summary>
-        ///	File name.
-        /// </summary>
-        public byte[] FileName { get; set; }
-        /// <summary>
-        ///	Extra field.
-        /// </summary>
-        public byte[] ExtraField { get; set; }
-    };
-
-    /// <summary>
-    /// Central directory file header.
-    /// </summary>
-    public class CentralDirectoryFileHeader : Header
-    {
-        /// <summary>
-        /// Version made by.
-        /// </summary>
-        public ushort VerMadeBy { get; set; }
-        /// <summary>
-        /// Version needed to extract (minimum).
-        /// </summary>
-        public ushort VerExtract { get; set; }
-        /// <summary>
-        /// General purpose bit flag.
-        /// </summary>
-        public ushort BitFlag { get; set; }
-        /// <summary>
-        /// Compression method.
-        /// </summary>
-        public ushort Method { get; set; }
-        /// <summary>
-        /// File last modification time.
-        /// </summary>
-        public ushort LastModificationTime { get; set; }
-        /// <summary>
-        /// File last modification date.
-        /// </summary>
-        public ushort LastModificationDate { get; set; }
-        /// <summary>
-        /// CRC-32 of uncompressed data.
-        /// </summary>
-        public uint Crc32 { get; set; }
-        /// <summary>
-        /// Compressed size (or 0xffffffff for ZIP64).
-        /// </summary>
-        public uint CompressedLength { get; set; }
-        /// <summary>
-        ///	Uncompressed size (or 0xffffffff for ZIP64).
-        /// </summary>
-        public uint Length { get; set; }
-        /// <summary>
-        /// File name length.
-        /// </summary>
-        public ushort FileNameLength { get; set; }
-        /// <summary>
-        /// Extra field length.
-        /// </summary>
-        public ushort ExtraLength { get; set; }
-        /// <summary>
-        /// File comment length.
-        /// </summary>
-        public ushort CommentLength { get; set; }
-        /// <summary>
-        /// Disk number where file starts.
-        /// </summary>
-        public ushort DiskNumber { get; set; }
-        /// <summary>
-        /// Internal file attributes.
-        /// </summary>
-        public ushort InternalFileAttribute { get; set; }
-        /// <summary>
-        /// External file attributes.
-        /// </summary>
-        public uint ExternalFileAttribute { get; set; }
-        /// <summary>
-        /// <para>Relative offset of local file header.</para>
-        /// <para>This is the number of bytes between the start of the first disk on which the file occurs,
-        /// and the start of the local file header.
-        /// This allows software reading the central directory to locate the position of the file inside the ZIP file.</para>
-        /// </summary>
-        public uint Offset { get; set; }
-        /// <summary>
-        ///	File name.
-        /// </summary>
-        public byte[] FileName { get; set; }
-        /// <summary>
-        ///	Extra field.
-        /// </summary>
-        public byte[] ExtraField { get; set; }
-        /// <summary>
-        /// Comment.
-        /// </summary>
-        public byte[] Comment { get; set; }
-    };
-
-    /// <summary>
-    /// <para>End of central directory record (EOCD)</para>
-    /// <para>After all the central directory entries comes the end of central directory (EOCD) record,
-    /// which marks the end of the ZIP file.</para>
-    /// </summary>
-    public class CentralDirectoryEndRecord : Header
-    {
-        /// <summary>
-        /// Number of this disk (or 0xffff for ZIP64).
-        /// </summary>
-        public ushort NumDisks { get; set; }
-        /// <summary>
-        /// Disk where central directory starts (or 0xffff for ZIP64).
-        /// </summary>
-        public ushort Disk { get; set; }
-        /// <summary>
-        /// Number of central directory records on this disk (or 0xffff for ZIP64).
-        /// </summary>
-        public ushort NumRecords { get; set; }
-        /// <summary>
-        /// Number of central directory records on this disk (or 0xffff for ZIP64).
-        /// </summary>
-        public ushort TotalRecords { get; set; }
-        /// <summary>
-        /// Size of central directory (bytes) (or 0xffffffff for ZIP64).
-        /// </summary>
-        public uint CentralDirectorySize { get; set; }
-        /// <summary>
-        /// Offset of start of central directory, relative to start of archive (or 0xffffffff for ZIP64).
-        /// </summary>
-        public uint Offset { get; set; }
-        /// <summary>
-        /// Comment length.
-        /// </summary>
-        public ushort CommentLength { get; set; }
-        /// <summary>
-        /// Comment.
-        /// </summary>
-        public byte[] Comment { get; set; }
-    };
 }
