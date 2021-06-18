@@ -14,10 +14,6 @@ namespace RecompressZip
     public class LimitedConcurrencyLevelTaskScheduler : TaskScheduler
     {
         /// <summary>
-        /// The list of tasks to be executed
-        /// </summary>
-        private readonly LinkedList<Task> _tasks = new(); // protected by lock(_tasks)
-        /// <summary>
         /// Indicates whether the current thread is processing work items. 
         /// </summary>
         [ThreadStatic]
@@ -31,6 +27,10 @@ namespace RecompressZip
 
 
         /// <summary>
+        /// The list of tasks to be executed
+        /// </summary>
+        private readonly LinkedList<Task> _tasks = new(); // protected by lock(_tasks)
+        /// <summary>
         /// Indicates whether the scheduler is currently processing work items.
         /// </summary>
         private int _delegatesQueuedOrRunning = 0;
@@ -43,7 +43,7 @@ namespace RecompressZip
         public LimitedConcurrencyLevelTaskScheduler(int maxDegreeOfParallelism)
         {
             if (maxDegreeOfParallelism < 1) {
-                throw new ArgumentOutOfRangeException("maxDegreeOfParallelism");
+                throw new ArgumentOutOfRangeException(nameof(maxDegreeOfParallelism));
             }
             MaximumConcurrencyLevel = maxDegreeOfParallelism;
         }
@@ -61,7 +61,7 @@ namespace RecompressZip
                 _tasks.AddLast(task);
                 if (_delegatesQueuedOrRunning < MaximumConcurrencyLevel)
                 {
-                    ++_delegatesQueuedOrRunning;
+                    _delegatesQueuedOrRunning++;
                     NotifyThreadPoolOfPendingWork();
                 }
             }
@@ -89,7 +89,7 @@ namespace RecompressZip
                             // note that we're done processing, and get out.
                             if (_tasks.Count == 0)
                             {
-                                --_delegatesQueuedOrRunning;
+                                _delegatesQueuedOrRunning--;
                                 break;
                             }
                             // Get the next item from the queue
@@ -118,10 +118,9 @@ namespace RecompressZip
         {
             // If this thread isn't already processing a task, we don't support inlining
             // If the task was previously queued, remove it from the queue
-            return !_currentThreadIsProcessingItems ? false
-                : !taskWasPreviouslyQueued ? TryExecuteTask(task)
-                : TryDequeue(task) ? TryExecuteTask(task)
-                : false;
+            return _currentThreadIsProcessingItems
+                && (!taskWasPreviouslyQueued || TryDequeue(task))
+                && TryExecuteTask(task);
         }
 
         /// <summary>
