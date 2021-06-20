@@ -1,6 +1,8 @@
 RecompressZip
 =============
 
+[![Test status](https://ci.appveyor.com/api/projects/status/x1jhkjn2phi3gh5e/branch/main?svg=true)](https://ci.appveyor.com/project/koturn/recompresszip/branch/main "AppVeyor | koturn/RecompressPng")
+
 Zip archive recompressor with Google's zopfli library.
 
 Implementation of [komiya-atsushi/zipzop](https://github.com/komiya-atsushi/zipzop "komiya-atsushi/zipzop") in C#.
