@@ -249,7 +249,7 @@ namespace RecompressZip
         {
             var signature = ReadSignature(reader);
 
-            var taskList = new List<Task<(LocalFileHeader Header, byte[] CompressedData)>>();
+            var taskList = new List<Task<(LocalFileHeader Header, byte[] CompressedData, SafeBuffer RecompressedData)>>();
             while (signature == ZipSignature.LocalFileHeader)
             {
                 taskList.Add(RecompressEntryAsync(reader, zopfliOptions, execOptions, taskList.Count + 1));
@@ -261,9 +261,22 @@ namespace RecompressZip
             {
                 var offset = (uint)writer.BaseStream.Position;
 
-                var (header, compressedData) = task.Result;
+                var (header, compressedData, recompressedData) = task.Result;
                 WriteLocalFileHeader(writer, header);
-                writer.Write(compressedData);
+                if (recompressedData == null)
+                {
+                    writer.Write(compressedData);
+                }
+                else
+                {
+                    unsafe
+                    {
+                        using (recompressedData)
+                        {
+                            writer.Write(new Span<byte>((void*)recompressedData.DangerousGetHandle(), (int)recompressedData.ByteLength));
+                        }
+                    }
+                }
 
                 return new CompressionResult(
                     (uint)compressedData.Length,
@@ -306,7 +319,7 @@ namespace RecompressZip
         /// <param name="execOptions">Options for execution.</param>
         /// <param name="procIndex">Process index for logging.</param>
         /// <returns>A tuple of new local file header and compressed data.</returns>
-        private static async Task<(LocalFileHeader Header, byte[] CompressedData)> RecompressEntryAsync(BinaryReader reader, ZopfliOptions zopfliOptions, ExecuteOptions execOptions, int procIndex)
+        private static async Task<(LocalFileHeader Header, byte[] CompressedData, SafeBuffer RecompressedData)> RecompressEntryAsync(BinaryReader reader, ZopfliOptions zopfliOptions, ExecuteOptions execOptions, int procIndex)
         {
             var header = ReadLocalFileHeader(reader);
             header.Signature = ZipSignature.LocalFileHeader;
@@ -315,7 +328,7 @@ namespace RecompressZip
             // Is not deflate
             if (header.Method != 8)
             {
-                return (header, src);
+                return (header, src, null);
             }
 
             using (var decompressedMs = new MemoryStream((int)header.Length))
@@ -334,34 +347,36 @@ namespace RecompressZip
                     var sw = Stopwatch.StartNew();
 
                     // Take a long long time ...
-                    var recompressedData = Zopfli.Compress(
+                    var recompressedData = Zopfli.CompressUnmanaged(
                         decompressedMs.GetBuffer(),
                         0,
                         (int)decompressedMs.Length,
                         zopfliOptions,
                         ZopfliFormat.Deflate);
 
+                    var byteLength = (int)recompressedData.ByteLength;
                     _logger.Log(
-                        recompressedData.Length < src.Length ? LogLevel.Info : LogLevel.Warn,
+                        byteLength < src.Length ? LogLevel.Info : LogLevel.Warn,
                         "[{0}] Compress {1} done: {2:F3} seconds, {3:F3} KiB -> {4:F3} KiB (deflated {5:F2}%)",
                         procIndex,
                         entryName,
                         sw.ElapsedMilliseconds / 1000.0,
                         ToKiB(src.Length),
-                        ToKiB(recompressedData.Length),
-                        CalcDeflatedRate(src.Length, recompressedData.Length) * 100.0);
+                        ToKiB(byteLength),
+                        CalcDeflatedRate(src.Length, byteLength) * 100.0);
 
                     return recompressedData;
                 });
 
-                if (recompressedData.Length < src.Length || execOptions.IsReplaceForce)
+                var byteLength = recompressedData.ByteLength;
+                if (byteLength < (ulong)src.Length || execOptions.IsReplaceForce)
                 {
-                    header.CompressedLength = (uint)recompressedData.Length;
-                    return (header, recompressedData);
+                    header.CompressedLength = (uint)byteLength;
+                    return (header, src, recompressedData);
                 }
                 else
                 {
-                    return (header, src);
+                    return (header, src, null);
                 }
             }
         }
