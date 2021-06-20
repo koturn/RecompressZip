@@ -271,12 +271,13 @@ namespace RecompressZip
                     offset);
             }).ToList();
 
-            int listCnt = 0;
+            var resultEnumerator = resultList.GetEnumerator();
             var centralDirOffset = writer.BaseStream.Position;
             while (signature == ZipSignature.CentralDirectoryFileHeader)
             {
                 var header = ReadCentralDirectoryFileHeader(reader);
-                var cr = resultList[listCnt++];
+                resultEnumerator.MoveNext();
+                var cr = resultEnumerator.Current;
                 header.CompressedLength = cr.CompressedLength;
                 header.Length = cr.Length;
                 header.Offset = cr.Offset;
