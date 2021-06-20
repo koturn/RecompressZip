@@ -4,6 +4,7 @@ environment:
   SOLUTION_NAME: RecompressZip
   SOLUTION_FILE: $(SOLUTION_NAME).sln
   CONFIG: Release
+  PLATFORM: 'Any CPU'
   MAIN_PROJECT_OUTDIR: $(SOLUTION_NAME)\bin\$(CONFIG)\net5.0
   ARTIFACTS_BASEDIR: Artifacts
   ARTIFACTS_SUBDIR: $(SOLUTION_NAME)
@@ -14,13 +15,13 @@ build_script:
 - cmd: >-
     git submodule update --init
 
-    msbuild /nologo /m /t:restore /p:Configuration=%CONFIG%;Platform="Any CPU" %SOLUTION_FILE%
-
-    msbuild /nologo /m /p:Configuration=%CONFIG%;Platform="Any CPU" %SOLUTION_FILE%
+    msbuild /nologo /m /t:restore /p:Configuration=%CONFIG%;Platform="%PLATFORM%" %SOLUTION_FILE%
 
     msbuild /nologo /m /p:Configuration=%CONFIG%;Platform="x86" %SOLUTION_FILE%
 
-    dotnet publish --nologo -c %CONFIG% -o %ARTIFACTS_BASEDIR%\%ARTIFACTS_SUBDIR% || set ERRORLEVEL=0
+    msbuild /nologo /m /p:Configuration=%CONFIG%;Platform="%PLATFORM%" %SOLUTION_FILE%
+
+    dotnet publish --nologo -c %CONFIG% -o %ARTIFACTS_BASEDIR%\%ARTIFACTS_SUBDIR% %SOLUTION_FILE% || set ERRORLEVEL=0
 
     xcopy /Y %MAIN_PROJECT_OUTDIR%\x64\*.dll %ARTIFACTS_BASEDIR%\%ARTIFACTS_SUBDIR%\x64\
 
@@ -34,7 +35,10 @@ build_script:
 
     cd ..
 test_script:
-- cmd: '%ARTIFACTS_BASEDIR%\%ARTIFACTS_SUBDIR%\%SOLUTION_NAME%.exe -h'
+- cmd: >-
+    %ARTIFACTS_BASEDIR%\%ARTIFACTS_SUBDIR%\%SOLUTION_NAME%.exe -h
+
+    %ARTIFACTS_BASEDIR%\%ARTIFACTS_SUBDIR%\%SOLUTION_NAME%.exe %ARTIFACTS_NAME%
 artifacts:
 - path: $(ARTIFACTS_NAME)
   name: .NET 5 binary of $(SOLUTION_NAME)
