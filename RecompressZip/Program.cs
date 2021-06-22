@@ -196,7 +196,7 @@ namespace RecompressZip
         {
             var dstFilePath = execOptions.IsDryRun ? null : Path.Combine(
                 Path.GetDirectoryName(srcFilePath),
-                Path.GetFileNameWithoutExtension(srcFilePath) + ".zopfli.zip");
+                Path.GetFileNameWithoutExtension(srcFilePath) + ".zopfli" + Path.GetExtension(srcFilePath));
             RecompressZip(srcFilePath, dstFilePath, zopfliOptions, execOptions);
         }
 
