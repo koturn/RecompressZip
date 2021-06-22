@@ -63,14 +63,30 @@ namespace RecompressZip
 
             foreach (var target in targets)
             {
-                if (!File.Exists(target))
+                var zipFilePath = target;
+                if (Directory.Exists(target))
                 {
-                    _logger.Fatal("Specified file doesn't exist: {0}", target);
+                    zipFilePath += ".zip";
+
+                    if (File.Exists(zipFilePath))
+                    {
+                        File.Delete(zipFilePath);
+                    }
+
+                    _logger.Info("Compress directory: {0} to {1} ...", target, zipFilePath);
+
+                    var sw = Stopwatch.StartNew();
+                    ZipFile.CreateFromDirectory(target, zipFilePath, CompressionLevel.Fastest, true);
+                    _logger.Info("Compress directory: {0} to {1} done: {2:3F} seconds", target, zipFilePath, sw.ElapsedMilliseconds / 1000.0);
+                }
+                if (!File.Exists(zipFilePath))
+                {
+                    _logger.Fatal("Specified file doesn't exist: {0}", zipFilePath);
                     continue;
                 }
                 try
                 {
-                    RecompressZip(target, zopfliOptions, execOptions);
+                    RecompressZip(zipFilePath, zopfliOptions, execOptions);
                 }
                 catch (Exception ex)
                 {
