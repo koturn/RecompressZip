@@ -8,11 +8,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ArgumentParserSharp", "Argu
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libzopfli", "libzopfli\libzopfli.vcxproj", "{084ED0ED-6B55-4734-B77E-42D7C24B6348}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libzopflipng", "libzopflipng\libzopflipng.vcxproj", "{CC414E6F-D22E-478D-8DD1-D25FB819B90B}"
-	ProjectSection(ProjectDependencies) = postProject
-		{084ED0ED-6B55-4734-B77E-42D7C24B6348} = {084ED0ED-6B55-4734-B77E-42D7C24B6348}
-	EndProjectSection
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ZopfliSharp", "ZopfliSharp\ZopfliSharp\ZopfliSharp.csproj", "{6F180976-090C-4F33-BAD0-368B9EB40894}"
 EndProject
 Global
@@ -61,18 +56,6 @@ Global
 		{084ED0ED-6B55-4734-B77E-42D7C24B6348}.Release|x64.Build.0 = Release|x64
 		{084ED0ED-6B55-4734-B77E-42D7C24B6348}.Release|x86.ActiveCfg = Release|Win32
 		{084ED0ED-6B55-4734-B77E-42D7C24B6348}.Release|x86.Build.0 = Release|Win32
-		{CC414E6F-D22E-478D-8DD1-D25FB819B90B}.Debug|Any CPU.ActiveCfg = Debug|x64
-		{CC414E6F-D22E-478D-8DD1-D25FB819B90B}.Debug|Any CPU.Build.0 = Debug|x64
-		{CC414E6F-D22E-478D-8DD1-D25FB819B90B}.Debug|x64.ActiveCfg = Debug|x64
-		{CC414E6F-D22E-478D-8DD1-D25FB819B90B}.Debug|x64.Build.0 = Debug|x64
-		{CC414E6F-D22E-478D-8DD1-D25FB819B90B}.Debug|x86.ActiveCfg = Debug|Win32
-		{CC414E6F-D22E-478D-8DD1-D25FB819B90B}.Debug|x86.Build.0 = Debug|Win32
-		{CC414E6F-D22E-478D-8DD1-D25FB819B90B}.Release|Any CPU.ActiveCfg = Release|x64
-		{CC414E6F-D22E-478D-8DD1-D25FB819B90B}.Release|Any CPU.Build.0 = Release|x64
-		{CC414E6F-D22E-478D-8DD1-D25FB819B90B}.Release|x64.ActiveCfg = Release|x64
-		{CC414E6F-D22E-478D-8DD1-D25FB819B90B}.Release|x64.Build.0 = Release|x64
-		{CC414E6F-D22E-478D-8DD1-D25FB819B90B}.Release|x86.ActiveCfg = Release|Win32
-		{CC414E6F-D22E-478D-8DD1-D25FB819B90B}.Release|x86.Build.0 = Release|Win32
 		{6F180976-090C-4F33-BAD0-368B9EB40894}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{6F180976-090C-4F33-BAD0-368B9EB40894}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6F180976-090C-4F33-BAD0-368B9EB40894}.Debug|x64.ActiveCfg = Debug|Any CPU
