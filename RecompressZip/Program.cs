@@ -351,6 +351,11 @@ namespace RecompressZip
             // Is not deflate
             if (header.Method != 8)
             {
+                _logger.Info(
+                    "[{0}] Non deflated file: {1} (Method = {2})",
+                    procIndex,
+                    Encoding.Default.GetString(header.FileName),
+                    header.Method);
                 return (header, src, null);
             }
 
@@ -364,7 +369,7 @@ namespace RecompressZip
 
                 var recompressedData = await _taskFactory.StartNew(() =>
                 {
-                    var entryName = Encoding.ASCII.GetString(header.FileName);
+                    var entryName = Encoding.Default.GetString(header.FileName);
                     _logger.Info("[{0}] Compress {1} ...", procIndex, entryName);
 
                     var sw = Stopwatch.StartNew();
