@@ -5,6 +5,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics.X86;
 using System.Security;
 using System.Text;
 using System.Threading.Tasks;
@@ -39,10 +40,16 @@ namespace RecompressZip
         /// </summary>
         static Program()
         {
-            UnsafeNativeMethods.SetDllDirectory(
-                Path.Combine(
-                    AppContext.BaseDirectory,
-                    Environment.Is64BitProcess ? "x64" : "x86"));
+            var dllDir = Path.Combine(
+                AppContext.BaseDirectory,
+                Environment.Is64BitProcess ? "x64" : "x86");
+            UnsafeNativeMethods.AddDllDirectory(dllDir);
+            if (Avx2.IsSupported)
+            {
+                UnsafeNativeMethods.AddDllDirectory(Path.Combine(dllDir, "avx2"));
+            }
+            UnsafeNativeMethods.SetDefaultDllDirectories(LoadLibrarySearchFlags.DefaultDirs);
+
             _logger = LogManager.GetCurrentClassLogger();
         }
 
@@ -598,13 +605,48 @@ namespace RecompressZip
         internal class UnsafeNativeMethods
         {
             /// <summary>
-            /// Adds a directory to the search path used to locate DLLs for the application.
+            /// Adds a directory to the process DLL search path.
             /// </summary>
             /// <param name="path">Path to DLL directory.</param>
             /// <returns>True if success to set directory, otherwise false.</returns>
             [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
             [SuppressUnmanagedCodeSecurity]
-            public static extern bool SetDllDirectory([In] string path);
+            public static extern bool AddDllDirectory([In] string path);
+            /// <summary>
+            /// <para>Specifies a default set of directories to search when the calling process loads a DLL.</para>
+            /// <para>This search path is used when LoadLibraryEx is called with no <see cref="LoadLibrarySearchFlags"/> flags.</para>
+            /// </summary>
+            /// <param name="directoryFlags">The directories to search. This parameter can be any combination of the following values.</param>
+            /// <returns>If the function succeeds, the return value is true.</returns>
+            [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+            [SuppressUnmanagedCodeSecurity]
+            public static extern bool SetDefaultDllDirectories(LoadLibrarySearchFlags directoryFlags);
+        }
+
+        /// <summary>
+        /// Flag values for <see cref="UnsafeNativeMethods.SetDefaultDllDirectories(LoadLibrarySearchFlags)"/>.
+        /// </summary>
+        [Flags]
+        internal enum LoadLibrarySearchFlags
+        {
+            /// <summary>
+            /// If this value is used, the application's installation directory is searched.
+            /// </summary>
+            ApplicationDir = 0x00000200,
+            /// <summary>
+            /// <para>This value is a combination of <see cref="ApplicationDir"/>, <see cref="System32"/>, and <see cref="UserDirs"/>.</para>
+            /// <para>This value represents the recommended maximum number of directories an application should include in its DLL search path.</para>
+            /// </summary>
+            DefaultDirs = 0x00001000,
+            /// <summary>
+            /// If this value is used, %windows%\system32 is searched.
+            /// </summary>
+            System32 = 0x00000800,
+            /// <summary>
+            /// <para>If this value is used, any path explicitly added using the AddDllDirectory or SetDllDirectory function is searched.</para>
+            /// <para>If more than one directory has been added, the order in which those directories are searched is unspecified.</para>
+            /// </summary>
+            UserDirs = 0x00000400
         }
     }
 }
