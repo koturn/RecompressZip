@@ -349,7 +349,7 @@ namespace RecompressZip
             var src = reader.ReadBytes((int)header.CompressedLength);
 
             // Is not deflate
-            if (header.Method != 8)
+            if (header.Method != 8 || header.CompressedLength == 0 || header.Length == 0)
             {
                 _logger.Info(
                     "[{0}] Non deflated file: {1} (Method = {2})",
