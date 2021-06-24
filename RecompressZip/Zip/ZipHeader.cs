@@ -1,4 +1,7 @@
-﻿namespace RecompressZip.Zip
+﻿using System.IO;
+
+
+namespace RecompressZip.Zip
 {
     /// <summary>
     /// Common part of header, <see cref="LocalFileHeader"/>, <see cref="CentralDirectoryFileHeader"/>
@@ -24,5 +27,15 @@
         /// </list>
         /// </summary>
         public ZipSignature Signature { get; set; }
+
+        /// <summary>
+        /// Read zip signature, just read 4 bytes.
+        /// </summary>
+        /// <param name="reader"><see cref="BinaryReader"/> of zip data.</param>
+        /// <returns>Signature.</returns>
+        public static ZipSignature ReadSignature(BinaryReader reader)
+        {
+            return (ZipSignature)reader.ReadUInt32();
+        }
     };
 }

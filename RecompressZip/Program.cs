@@ -270,13 +270,13 @@ namespace RecompressZip
         /// <returns>Number of entries in zip file.</returns>
         private static int RecompressZip(BinaryReader reader, BinaryWriter writer, in ZopfliOptions zopfliOptions, ExecuteOptions execOptions)
         {
-            var signature = ReadSignature(reader);
+            var signature = ZipHeader.ReadSignature(reader);
 
             var taskList = new List<Task<(LocalFileHeader Header, byte[] CompressedData, SafeBuffer RecompressedData)>>();
             while (signature == ZipSignature.LocalFileHeader)
             {
                 taskList.Add(RecompressEntryAsync(reader, zopfliOptions, execOptions, taskList.Count + 1));
-                signature = ReadSignature(reader);
+                signature = ZipHeader.ReadSignature(reader);
             }
 
             // Wait all compression done and write the data.
@@ -285,7 +285,7 @@ namespace RecompressZip
                 var offset = (uint)writer.BaseStream.Position;
 
                 var (header, compressedData, recompressedData) = task.Result;
-                WriteLocalFileHeader(writer, header);
+                header.WriteTo(writer);
                 if (recompressedData == null)
                 {
                     writer.Write(compressedData);
@@ -308,22 +308,22 @@ namespace RecompressZip
             var centralDirOffset = writer.BaseStream.Position;
             while (signature == ZipSignature.CentralDirectoryFileHeader)
             {
-                var header = ReadCentralDirectoryFileHeader(reader);
+                var header = CentralDirectoryFileHeader.ReadFrom(reader);
                 resultEnumerator.MoveNext();
                 var cr = resultEnumerator.Current;
                 header.CompressedLength = cr.CompressedLength;
                 header.Length = cr.Length;
                 header.Offset = cr.Offset;
-                WriteCentralDirectoryFileHeader(writer, header);
+                header.WriteTo(writer);
 
-                signature = ReadSignature(reader);
+                signature = ZipHeader.ReadSignature(reader);
             }
 
             if (signature == ZipSignature.EndRecord)
             {
-                var header = ReadCentralDirectoryEndRecord(reader);
+                var header = CentralDirectoryEndRecord.ReadFrom(reader);
                 header.Offset = (uint)centralDirOffset;
-                WriteCentralDirectoryEndRecord(writer, header);
+                header.WriteTo(writer);
             }
 
             return resultList.Count;
@@ -341,8 +341,7 @@ namespace RecompressZip
         /// <returns>A tuple of new local file header and compressed data.</returns>
         private static async Task<(LocalFileHeader Header, byte[] CompressedData, SafeBuffer RecompressedData)> RecompressEntryAsync(BinaryReader reader, ZopfliOptions zopfliOptions, ExecuteOptions execOptions, int procIndex)
         {
-            var header = ReadLocalFileHeader(reader);
-            header.Signature = ZipSignature.LocalFileHeader;
+            var header = LocalFileHeader.ReadFrom(reader);
             var compressedData = reader.ReadBytes((int)header.CompressedLength);
 
             // Is not deflate
@@ -414,169 +413,6 @@ namespace RecompressZip
         private static unsafe Span<byte> CreateSpan(SafeBuffer sb)
         {
             return new Span<byte>((void*)sb.DangerousGetHandle(), (int)sb.ByteLength);
-        }
-
-        /// <summary>
-        /// Read zip signature, just read 4 bytes.
-        /// </summary>
-        /// <param name="reader"><see cref="BinaryReader"/> of zip data.</param>
-        /// <returns>Signature.</returns>
-        static ZipSignature ReadSignature(BinaryReader reader)
-        {
-            return (ZipSignature)reader.ReadUInt32();
-        }
-
-        /// <summary>
-        /// Read local file header from <see cref="BinaryReader"/>.
-        /// </summary>
-        /// <param name="reader"><see cref="BinaryReader"/> of zip data.</param>
-        /// <returns>Local file header data.</returns>
-        static LocalFileHeader ReadLocalFileHeader(BinaryReader reader)
-        {
-            var header = new LocalFileHeader
-            {
-                Signature = ZipSignature.LocalFileHeader,
-                VerExtract = reader.ReadUInt16(),
-                BitFlag = reader.ReadUInt16(),
-                Method = reader.ReadUInt16(),
-                LastModificationTime = reader.ReadUInt16(),
-                LastModificationDate = reader.ReadUInt16(),
-                Crc32 = reader.ReadUInt32(),
-                CompressedLength = reader.ReadUInt32(),
-                Length = reader.ReadUInt32(),
-                FileNameLength = reader.ReadUInt16(),
-                ExtraLength = reader.ReadUInt16()
-            };
-            header.FileName = reader.ReadBytes(header.FileNameLength);
-            header.ExtraField = reader.ReadBytes(header.ExtraLength);
-
-            return header;
-        }
-
-        /// <summary>
-        /// Write specified <see cref="LocalFileHeader"/>.
-        /// </summary>
-        /// <param name="writer"><see cref="BinaryWriter"/> of destination stream.</param>
-        /// <param name="header"><see cref="LocalFileHeader"/> to write.</param>
-        private static void WriteLocalFileHeader(BinaryWriter writer, LocalFileHeader header)
-        {
-            writer.Write((uint)header.Signature);
-            writer.Write(header.VerExtract);
-            writer.Write(header.BitFlag);
-            writer.Write(header.Method);
-            writer.Write(header.LastModificationTime);
-            writer.Write(header.LastModificationDate);
-            writer.Write(header.Crc32);
-            writer.Write(header.CompressedLength);
-            writer.Write(header.Length);
-            writer.Write(header.FileNameLength);
-            writer.Write(header.ExtraLength);
-            writer.Write(header.FileName);
-            writer.Write(header.ExtraField);
-        }
-
-        /// <summary>
-        /// Read central directory file header from <see cref="BinaryReader"/>.
-        /// </summary>
-        /// <param name="reader"><see cref="BinaryReader"/> of zip data.</param>
-        /// <returns>Central directory file header data.</returns>
-        static CentralDirectoryFileHeader ReadCentralDirectoryFileHeader(BinaryReader reader)
-        {
-            var header = new CentralDirectoryFileHeader
-            {
-                Signature = ZipSignature.CentralDirectoryFileHeader,
-                VerMadeBy = reader.ReadUInt16(),
-                VerExtract = reader.ReadUInt16(),
-                BitFlag = reader.ReadUInt16(),
-                Method = reader.ReadUInt16(),
-                LastModificationTime = reader.ReadUInt16(),
-                LastModificationDate = reader.ReadUInt16(),
-                Crc32 = reader.ReadUInt32(),
-                CompressedLength = reader.ReadUInt32(),
-                Length = reader.ReadUInt32(),
-                FileNameLength = reader.ReadUInt16(),
-                ExtraLength = reader.ReadUInt16(),
-                CommentLength = reader.ReadUInt16(),
-                DiskNumber = reader.ReadUInt16(),
-                InternalFileAttribute = reader.ReadUInt16(),
-                ExternalFileAttribute = reader.ReadUInt32(),
-                Offset = reader.ReadUInt32()
-            };
-            header.FileName = reader.ReadBytes(header.FileNameLength);
-            header.ExtraField = reader.ReadBytes(header.ExtraLength);
-            header.Comment = reader.ReadBytes(header.CommentLength);
-
-            return header;
-        }
-
-        /// <summary>
-        /// Write specified <see cref="CentralDirectoryFileHeader"/>.
-        /// </summary>
-        /// <param name="writer"><see cref="BinaryWriter"/> of destination stream.</param>
-        /// <param name="header"><see cref="CentralDirectoryFileHeader"/> to write.</param>
-        private static void WriteCentralDirectoryFileHeader(BinaryWriter writer, CentralDirectoryFileHeader header)
-        {
-            writer.Write((uint)header.Signature);
-            writer.Write(header.VerMadeBy);
-            writer.Write(header.VerExtract);
-            writer.Write(header.BitFlag);
-            writer.Write(header.Method);
-            writer.Write(header.LastModificationTime);
-            writer.Write(header.LastModificationDate);
-            writer.Write(header.Crc32);
-            writer.Write(header.CompressedLength);
-            writer.Write(header.Length);
-            writer.Write(header.FileNameLength);
-            writer.Write(header.ExtraLength);
-            writer.Write(header.CommentLength);
-            writer.Write(header.DiskNumber);
-            writer.Write(header.InternalFileAttribute);
-            writer.Write(header.ExternalFileAttribute);
-            writer.Write(header.Offset);
-            writer.Write(header.FileName);
-            writer.Write(header.ExtraField);
-            writer.Write(header.Comment);
-        }
-
-        /// <summary>
-        /// Read central directory end record from <see cref="BinaryReader"/>.
-        /// </summary>
-        /// <param name="reader"><see cref="BinaryReader"/> of zip data.</param>
-        /// <returns>Central directory end record data.</returns>
-        static CentralDirectoryEndRecord ReadCentralDirectoryEndRecord(BinaryReader reader)
-        {
-            var header = new CentralDirectoryEndRecord
-            {
-                Signature = ZipSignature.EndRecord,
-                NumDisks = reader.ReadUInt16(),
-                Disk = reader.ReadUInt16(),
-                NumRecords = reader.ReadUInt16(),
-                TotalRecords = reader.ReadUInt16(),
-                CentralDirectorySize = reader.ReadUInt32(),
-                Offset = reader.ReadUInt32(),
-                CommentLength = reader.ReadUInt16()
-            };
-            header.Comment = reader.ReadBytes(header.CommentLength);
-
-            return header;
-        }
-
-        /// <summary>
-        /// Write specified <see cref="CentralDirectoryEndRecord"/>.
-        /// </summary>
-        /// <param name="writer"><see cref="BinaryWriter"/> of destination stream.</param>
-        /// <param name="header"><see cref="CentralDirectoryEndRecord"/> to write.</param>
-        private static void WriteCentralDirectoryEndRecord(BinaryWriter writer, CentralDirectoryEndRecord header)
-        {
-            writer.Write((uint)header.Signature);
-            writer.Write(header.NumDisks);
-            writer.Write(header.Disk);
-            writer.Write(header.NumRecords);
-            writer.Write(header.TotalRecords);
-            writer.Write(header.CentralDirectorySize);
-            writer.Write(header.Offset);
-            writer.Write(header.CommentLength);
-            writer.Write(header.Comment);
         }
 
         /// <summary>
