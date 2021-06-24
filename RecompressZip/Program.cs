@@ -51,6 +51,7 @@ namespace RecompressZip
             UnsafeNativeMethods.SetDefaultDllDirectories(LoadLibrarySearchFlags.DefaultDirs);
 
             _logger = LogManager.GetCurrentClassLogger();
+            _taskFactory = new TaskFactory();
         }
 
 
@@ -64,9 +65,10 @@ namespace RecompressZip
             var (targets, zopfliOptions, execOptions) = ParseCommadLineArguments(args);
             ShowParameters(zopfliOptions, execOptions);
 
-            _taskFactory = execOptions.NumberOfThreads > 0
-                ? new TaskFactory(new LimitedConcurrencyLevelTaskScheduler(execOptions.NumberOfThreads))
-                : new TaskFactory();
+            if (execOptions.NumberOfThreads > 0)
+            {
+                _taskFactory = new TaskFactory(new LimitedConcurrencyLevelTaskScheduler(execOptions.NumberOfThreads));
+            }
 
             foreach (var target in targets)
             {
@@ -202,7 +204,7 @@ namespace RecompressZip
         private static void RecompressZip(string srcFilePath, in ZopfliOptions zopfliOptions, ExecuteOptions execOptions)
         {
             var dstFilePath = execOptions.IsDryRun ? null : Path.Combine(
-                Path.GetDirectoryName(srcFilePath),
+                Path.GetDirectoryName(srcFilePath) ?? "",
                 Path.GetFileNameWithoutExtension(srcFilePath) + ".zopfli" + Path.GetExtension(srcFilePath));
             RecompressZip(srcFilePath, dstFilePath, zopfliOptions, execOptions);
         }
@@ -214,7 +216,7 @@ namespace RecompressZip
         /// <param name="dstFilePath">Destination zip file path.</param>
         /// <param name="zopfliOptions">Options for zopfli.</param>
         /// <param name="execOptions">Options for execution.</param>
-        private static void RecompressZip(string srcFilePath, string dstFilePath, in ZopfliOptions zopfliOptions, ExecuteOptions execOptions)
+        private static void RecompressZip(string srcFilePath, string? dstFilePath, in ZopfliOptions zopfliOptions, ExecuteOptions execOptions)
         {
             _logger.Info("Recompress start: {0}", srcFilePath);
 
@@ -272,7 +274,7 @@ namespace RecompressZip
         {
             var signature = ZipHeader.ReadSignature(reader);
 
-            var taskList = new List<Task<(LocalFileHeader Header, byte[] CompressedData, SafeBuffer RecompressedData)>>();
+            var taskList = new List<Task<(LocalFileHeader Header, byte[]? CompressedData, SafeBuffer? RecompressedData)>>();
             while (signature == ZipSignature.LocalFileHeader)
             {
                 taskList.Add(RecompressEntryAsync(reader, zopfliOptions, execOptions, taskList.Count + 1));
@@ -286,22 +288,29 @@ namespace RecompressZip
 
                 var (header, compressedData, recompressedData) = task.Result;
                 header.WriteTo(writer);
-                if (recompressedData == null)
-                {
-                    writer.Write(compressedData);
-                }
-                else
+                if (recompressedData != null)
                 {
                     using (recompressedData)
                     {
                         writer.Write(CreateSpan(recompressedData));
                     }
+                    return new CompressionResult(
+                        (uint)recompressedData.ByteLength,
+                        header.Length,
+                        offset);
                 }
-
-                return new CompressionResult(
-                    (uint)compressedData.Length,
-                    header.Length,
-                    offset);
+                else if (compressedData != null)
+                {
+                    writer.Write(compressedData);
+                    return new CompressionResult(
+                        (uint)compressedData.Length,
+                        header.Length,
+                        offset);
+                }
+                else
+                {
+                    throw new InvalidDataException($"Both {nameof(compressedData)} and  {nameof(recompressedData)} is null");
+                }
             }).ToList();
 
             var resultEnumerator = resultList.GetEnumerator();
@@ -339,7 +348,7 @@ namespace RecompressZip
         /// <param name="execOptions">Options for execution.</param>
         /// <param name="procIndex">Process index for logging.</param>
         /// <returns>A tuple of new local file header and compressed data.</returns>
-        private static async Task<(LocalFileHeader Header, byte[] CompressedData, SafeBuffer RecompressedData)> RecompressEntryAsync(BinaryReader reader, ZopfliOptions zopfliOptions, ExecuteOptions execOptions, int procIndex)
+        private static async Task<(LocalFileHeader Header, byte[]? CompressedData, SafeBuffer? RecompressedData)> RecompressEntryAsync(BinaryReader reader, ZopfliOptions zopfliOptions, ExecuteOptions execOptions, int procIndex)
         {
             var header = LocalFileHeader.ReadFrom(reader);
             var compressedData = reader.ReadBytes((int)header.CompressedLength);

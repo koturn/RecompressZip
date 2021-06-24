@@ -87,13 +87,14 @@ namespace RecompressZip
                         {
                             // When there are no more items to be processed,
                             // note that we're done processing, and get out.
-                            if (_tasks.Count == 0)
+                            var task = _tasks.First;
+                            if (task == null)
                             {
                                 _delegatesQueuedOrRunning--;
                                 break;
                             }
                             // Get the next item from the queue
-                            item = _tasks.First.Value;
+                            item = task.Value;
                             _tasks.RemoveFirst();
                         }
                         // Execute the task we pulled out of the queue
