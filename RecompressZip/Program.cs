@@ -292,12 +292,9 @@ namespace RecompressZip
                 }
                 else
                 {
-                    unsafe
+                    using (recompressedData)
                     {
-                        using (recompressedData)
-                        {
-                            writer.Write(new Span<byte>((void*)recompressedData.DangerousGetHandle(), (int)recompressedData.ByteLength));
-                        }
+                        writer.Write(CreateSpan(recompressedData));
                     }
                 }
 
@@ -346,7 +343,7 @@ namespace RecompressZip
         {
             var header = ReadLocalFileHeader(reader);
             header.Signature = ZipSignature.LocalFileHeader;
-            var src = reader.ReadBytes((int)header.CompressedLength);
+            var compressedData = reader.ReadBytes((int)header.CompressedLength);
 
             // Is not deflate
             if (header.Method != 8 || header.CompressedLength == 0 || header.Length == 0)
@@ -356,12 +353,12 @@ namespace RecompressZip
                     procIndex,
                     Encoding.Default.GetString(header.FileName),
                     header.Method);
-                return (header, src, null);
+                return (header, compressedData, null);
             }
 
             using (var decompressedMs = new MemoryStream((int)header.Length))
             {
-                using (var compressedMs = new MemoryStream(src))
+                using (var compressedMs = new MemoryStream(compressedData))
                 using (var dds = new DeflateStream(compressedMs, CompressionMode.Decompress))
                 {
                     dds.CopyTo(decompressedMs);
@@ -384,29 +381,39 @@ namespace RecompressZip
 
                     var byteLength = (int)recompressedData.ByteLength;
                     _logger.Log(
-                        byteLength < src.Length ? LogLevel.Info : LogLevel.Warn,
+                        byteLength < compressedData.Length ? LogLevel.Info : LogLevel.Warn,
                         "[{0}] Compress {1} done: {2:F3} seconds, {3:F3} KiB -> {4:F3} KiB (deflated {5:F2}%)",
                         procIndex,
                         entryName,
                         sw.ElapsedMilliseconds / 1000.0,
-                        ToKiB(src.Length),
+                        ToKiB(compressedData.Length),
                         ToKiB(byteLength),
-                        CalcDeflatedRate(src.Length, byteLength) * 100.0);
+                        CalcDeflatedRate(compressedData.Length, byteLength) * 100.0);
 
                     return recompressedData;
                 });
 
                 var byteLength = recompressedData.ByteLength;
-                if (byteLength < (ulong)src.Length || execOptions.IsReplaceForce)
+                if (byteLength < (ulong)compressedData.Length || execOptions.IsReplaceForce)
                 {
                     header.CompressedLength = (uint)byteLength;
-                    return (header, src, recompressedData);
+                    return (header, null, recompressedData);
                 }
                 else
                 {
-                    return (header, src, null);
+                    return (header, compressedData, null);
                 }
             }
+        }
+
+        /// <summary>
+        /// Create <see cref="Span{T}"/> from <see cref="SafeBuffer"/>.
+        /// </summary>
+        /// <param name="sb">An instance of <see cref="SafeBuffer"/>.</param>
+        /// <returns><see cref="Span{T}"/> of <paramref name="sb"/>.</returns>
+        private static unsafe Span<byte> CreateSpan(SafeBuffer sb)
+        {
+            return new Span<byte>((void*)sb.DangerousGetHandle(), (int)sb.ByteLength);
         }
 
         /// <summary>
