@@ -367,11 +367,22 @@ namespace RecompressZip
             var header = LocalFileHeader.ReadFrom(reader);
             var compressedData = reader.ReadBytes((int)header.CompressedLength);
 
-            // Is not deflate
-            if (header.Method != 8 || header.CompressedLength == 0 || header.Length == 0)
+            // Data part is not exists
+            if (header.CompressedLength == 0 || header.Length == 0)
             {
                 _logger.Info(
-                    "[{0}] Non deflated file: {1} (Method = {2})",
+                    "[{0}] No data entry: {1} (Method = {2})",
+                    procIndex,
+                    Encoding.Default.GetString(header.FileName),
+                    header.Method);
+                return (header, compressedData, null);
+
+            }
+            // Is not deflate
+            if (header.Method != 8)
+            {
+                _logger.Info(
+                    "[{0}] Non deflated entry: {1} (Method = {2})",
                     procIndex,
                     Encoding.Default.GetString(header.FileName),
                     header.Method);
