@@ -218,33 +218,47 @@ namespace RecompressZip
         /// <param name="execOptions">Options for execution.</param>
         private static void RecompressZip(string srcFilePath, string? dstFilePath, in ZopfliOptions zopfliOptions, ExecuteOptions execOptions)
         {
-            _logger.Info("Recompress start: {0}", srcFilePath);
-
-            var srcFileSize = new FileInfo(srcFilePath).Length;
-            var totalSw = Stopwatch.StartNew();
-            int entryCount;
-            long dstFileSize;
-
-            using (var ifs = new FileStream(srcFilePath, FileMode.Open, FileAccess.Read, FileShare.Read))
-            using (var ofs = dstFilePath == null ? (Stream)new MemoryStream((int)srcFileSize)
-                : new FileStream(dstFilePath, FileMode.Create, FileAccess.Write, FileShare.Read))
+            var isRecompressDone = false;
+            try
             {
-                entryCount = RecompressZip(ifs, ofs, zopfliOptions, execOptions);
-                dstFileSize = ofs.Length;
+                _logger.Info("Recompress start: {0}", srcFilePath);
+
+                var srcFileSize = new FileInfo(srcFilePath).Length;
+                var totalSw = Stopwatch.StartNew();
+                int entryCount;
+                long dstFileSize;
+
+                using (var ifs = new FileStream(srcFilePath, FileMode.Open, FileAccess.Read, FileShare.Read))
+                using (var ofs = dstFilePath == null ? (Stream)new MemoryStream((int)srcFileSize)
+                    : new FileStream(dstFilePath, FileMode.Create, FileAccess.Write, FileShare.Read))
+                {
+                    entryCount = RecompressZip(ifs, ofs, zopfliOptions, execOptions);
+                    dstFileSize = ofs.Length;
+                }
+
+                isRecompressDone = true;
+
+                _logger.Info("Recompress done: {0} ({1} files).", srcFilePath, entryCount);
+                _logger.Info("Elapsed time: {0:F3} seconds.", totalSw.ElapsedMilliseconds / 1000.0);
+                _logger.Info(
+                    "{0:F3} MiB -> {1:F3} MiB (deflated {2:F2}%)",
+                    ToMiB(srcFileSize),
+                    ToMiB(dstFileSize),
+                    CalcDeflatedRate(srcFileSize, dstFileSize) * 100.0);
+
+                if (dstFilePath != null && execOptions.IsOverwrite)
+                {
+                    File.Delete(srcFilePath);
+                    File.Move(dstFilePath, srcFilePath);
+                }
             }
-
-            _logger.Info("Recompress done: {0} ({1} files).", srcFilePath, entryCount);
-            _logger.Info("Elapsed time: {0:F3} seconds.", totalSw.ElapsedMilliseconds / 1000.0);
-            _logger.Info(
-                "{0:F3} MiB -> {1:F3} MiB (deflated {2:F2}%)",
-                ToMiB(srcFileSize),
-                ToMiB(dstFileSize),
-                CalcDeflatedRate(srcFileSize, dstFileSize) * 100.0);
-
-            if (dstFilePath != null && execOptions.IsOverwrite)
+            catch
             {
-                File.Delete(srcFilePath);
-                File.Move(dstFilePath, srcFilePath);
+                if (dstFilePath != null && !isRecompressDone)
+                {
+                    File.Delete(dstFilePath);
+                }
+                throw;
             }
         }
 

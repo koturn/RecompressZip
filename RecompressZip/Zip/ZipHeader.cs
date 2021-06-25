@@ -1,4 +1,6 @@
-﻿using System.IO;
+﻿using System;
+using System.Diagnostics.CodeAnalysis;
+using System.IO;
 
 
 namespace RecompressZip.Zip
@@ -35,7 +37,35 @@ namespace RecompressZip.Zip
         /// <returns>Signature.</returns>
         public static ZipSignature ReadSignature(BinaryReader reader)
         {
-            return (ZipSignature)reader.ReadUInt32();
+            var signature = (ZipSignature)reader.ReadUInt32();
+            if (!Enum.IsDefined(signature))
+            {
+                ThrowInvalidDataException(signature);
+            }
+            return signature;
+        }
+
+
+        /// <summary>
+        /// Throw <see cref="InvalidDataException"/>.
+        /// </summary>
+        /// <param name="signature">Error signature value.</param>
+        /// <exception cref="InvalidDataException">Always thrown from this method.</exception>
+        [DoesNotReturn]
+        private static void ThrowInvalidDataException(ZipSignature signature)
+        {
+            ThrowInvalidDataException($"Invalid zip signature: 0x{(uint)signature:X8}");
+        }
+
+        /// <summary>
+        /// Throw <see cref="InvalidDataException"/>.
+        /// </summary>
+        /// <param name="message">The error message that explains the reason for the exception.</param>
+        /// <exception cref="InvalidDataException">Always thrown from this method.</exception>
+        [DoesNotReturn]
+        private static void ThrowInvalidDataException(string message)
+        {
+            throw new InvalidDataException(message);
         }
     };
 }
