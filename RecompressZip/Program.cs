@@ -239,12 +239,12 @@ namespace RecompressZip
                 isRecompressDone = true;
 
                 _logger.Info("Recompress done: {0} ({1} files).", srcFilePath, entryCount);
-                _logger.Info("Elapsed time: {0:F3} seconds.", totalSw.ElapsedMilliseconds / 1000.0);
                 _logger.Info(
-                    "{0:F3} MiB -> {1:F3} MiB (deflated {2:F2}%)",
+                    "{0:F3} MiB -> {1:F3} MiB (deflated {2:F2}%, {3:F3} seconds)",
                     ToMiB(srcFileSize),
                     ToMiB(dstFileSize),
-                    CalcDeflatedRate(srcFileSize, dstFileSize) * 100.0);
+                    CalcDeflatedRate(srcFileSize, dstFileSize) * 100.0,
+                    totalSw.ElapsedMilliseconds / 1000.0);
 
                 if (dstFilePath != null && execOptions.IsOverwrite)
                 {
@@ -415,13 +415,13 @@ namespace RecompressZip
                     var byteLength = (int)recompressedData.ByteLength;
                     _logger.Log(
                         byteLength < compressedData.Length ? LogLevel.Info : LogLevel.Warn,
-                        "[{0}] Compress {1} done: {2:F3} seconds, {3:F3} KiB -> {4:F3} KiB (deflated {5:F2}%)",
+                        "[{0}] Compress {1} done: {2:F3} KiB -> {3:F3} KiB (deflated {4:F2}%, {5:F3} seconds)",
                         procIndex,
                         entryName,
-                        sw.ElapsedMilliseconds / 1000.0,
                         ToKiB(compressedData.Length),
                         ToKiB(byteLength),
-                        CalcDeflatedRate(compressedData.Length, byteLength) * 100.0);
+                        CalcDeflatedRate(compressedData.Length, byteLength) * 100.0,
+                        sw.ElapsedMilliseconds / 1000.0);
 
                     return recompressedData;
                 });
