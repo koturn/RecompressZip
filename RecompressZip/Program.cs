@@ -95,7 +95,18 @@ namespace RecompressZip
                 }
                 try
                 {
-                    RecompressZip(zipFilePath, zopfliOptions, execOptions);
+                    if (IsZipFile(zipFilePath))
+                    {
+                        RecompressZip(zipFilePath, zopfliOptions, execOptions);
+                    }
+                    else if (IsGZipFile(zipFilePath))
+                    {
+                        RecompressGZip(zipFilePath, zopfliOptions, execOptions);
+                    }
+                    else
+                    {
+                        _logger.Fatal("Specified file isn't neither zip archive nor gzip file: {0}", zipFilePath);
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -193,6 +204,73 @@ namespace RecompressZip
             Console.WriteLine($"Dry Run: {execOptions.IsDryRun}");
 
             Console.WriteLine("- - -");
+        }
+
+        /// <summary>
+        /// <para>Identify zip archive file or not.</para>
+        /// <para>Just determine if the first four bytes are 'P', 'K', 0x03 and 0x04.</para>
+        /// </summary>
+        /// <param name="zipFilePath">Target zip file path,</param>
+        /// <returns>True if specified file is a zip archive file, otherwise false.</returns>
+        private static bool IsZipFile(string zipFilePath)
+        {
+            Span<byte> buffer = stackalloc byte[4];
+            using (var fs = new FileStream(zipFilePath, FileMode.Open, FileAccess.Read, FileShare.Read))
+            {
+                if (fs.Read(buffer) < buffer.Length)
+                {
+                    return false;
+                }
+            }
+            return HasZipSignature(buffer);
+        }
+
+        /// <summary>
+        /// <para>Identify the specified binary data has a zip signature or not.</para>
+        /// <para>Just determine if the first four bytes are 'P', 'K', 0x03 and 0x04.</para>
+        /// </summary>
+        /// <param name="data">Binary data</param>
+        /// <returns>True if the specified binary has a zip signature, otherwise false.</returns>
+        private static bool HasZipSignature(Span<byte> data)
+        {
+            return data.Length >= 4
+                && data[0] == 'P'
+                && data[1] == 'K'
+                && data[2] == 0x03
+                && data[3] == 0x04;
+        }
+
+        /// <summary>
+        /// <para>Identify gzip compressed file or not.</para>
+        /// <para>Just determine if the first three bytes are 0x1f, 0x8b and 0x08.</para>
+        /// </summary>
+        /// <param name="zipFilePath">Target gzip compressed file path,</param>
+        /// <returns>True if specified file is a gzip compressed file, otherwise false.</returns>
+        private static bool IsGZipFile(string zipFilePath)
+        {
+            Span<byte> buffer = stackalloc byte[3];
+            using (var fs = new FileStream(zipFilePath, FileMode.Open, FileAccess.Read, FileShare.Read))
+            {
+                if (fs.Read(buffer) < buffer.Length)
+                {
+                    return false;
+                }
+            }
+            return HasGZipSignature(buffer);
+        }
+
+        /// <summary>
+        /// <para>Identify gzip compressed file or not.</para>
+        /// <para>Just determine if the first three bytes are 0x1f, 0x8b and 0x08.</para>
+        /// </summary>
+        /// <param name="data">Binary data</param>
+        /// <returns>True if the specified binary has a gzip signature, otherwise false.</returns>
+        private static bool HasGZipSignature(Span<byte> data)
+        {
+            return data.Length >= 3
+                && data[0] == 0x1f
+                && data[1] == 0x8b
+                && data[2] == 0x08;
         }
 
         /// <summary>
@@ -437,6 +515,118 @@ namespace RecompressZip
                     return (header, compressedData, null);
                 }
             }
+        }
+
+        /// <summary>
+        /// Recompress zip compressed file.
+        /// </summary>
+        /// <param name="srcFilePath">Source zip file path.</param>
+        /// <param name="zopfliOptions">Options for zopfli.</param>
+        /// <param name="execOptions">Options for execution.</param>
+        private static void RecompressGZip(string srcFilePath, in ZopfliOptions zopfliOptions, ExecuteOptions execOptions)
+        {
+            var dstFilePath = execOptions.IsDryRun ? null
+                : execOptions.IsOverwrite ? srcFilePath
+                : Path.Combine(
+                    Path.GetDirectoryName(srcFilePath) ?? "",
+                    Path.GetFileNameWithoutExtension(srcFilePath) + ".zopfli" + Path.GetExtension(srcFilePath));
+            RecompressGZip(srcFilePath, dstFilePath, zopfliOptions, execOptions);
+        }
+
+        /// <summary>
+        /// Recompress gzip compressed file.
+        /// </summary>
+        /// <param name="srcFilePath">Source zip file path.</param>
+        /// <param name="dstFilePath">Destination zip file path.</param>
+        /// <param name="zopfliOptions">Options for zopfli.</param>
+        /// <param name="execOptions">Options for execution.</param>
+        private static void RecompressGZip(string srcFilePath, string? dstFilePath, in ZopfliOptions zopfliOptions, ExecuteOptions execOptions)
+        {
+            _logger.Info("Recompress start: {0}", srcFilePath);
+
+            var srcFileSize = new FileInfo(srcFilePath).Length;
+            var totalSw = Stopwatch.StartNew();
+
+            using var decompressedMs = DecompressGZipToMemoryStream(srcFilePath);
+            using var recompressedData = Zopfli.CompressUnmanaged(
+                 decompressedMs.GetBuffer(),
+                 0,
+                 (int)decompressedMs.Length,
+                 zopfliOptions,
+                 ZopfliFormat.GZip);
+
+            _logger.Info("Recompress done: {0}.", srcFilePath);
+            _logger.Info(
+                "{0:F3} MiB -> {1:F3} MiB (deflated {2:F2}%, {3:F3} seconds)",
+                ToMiB(srcFileSize),
+                ToMiB((long)recompressedData.ByteLength),
+                CalcDeflatedRate(srcFileSize, (long)recompressedData.ByteLength) * 100.0,
+                totalSw.ElapsedMilliseconds / 1000.0);
+
+            if (dstFilePath == null)
+            {
+                return;
+            }
+
+            if ((long)recompressedData.ByteLength < srcFileSize || execOptions.IsReplaceForce)
+            {
+                using var ofs = new FileStream(dstFilePath, FileMode.Create, FileAccess.Write, FileShare.Read);
+                ofs.Write(CreateSpan(recompressedData));
+            }
+            else if (srcFilePath != dstFilePath)
+            {
+                File.Copy(srcFilePath, dstFilePath, true);
+            }
+        }
+
+        /// <summary>
+        /// Decompress gzip compressed file to <see cref="MemoryStream"/>.
+        /// </summary>
+        /// <param name="gzipFilePath">Gzip compressed file path</param>
+        /// <returns><see cref="MemoryStream"/> of decompress data.</returns>
+        private static MemoryStream DecompressGZipToMemoryStream(string gzipFilePath)
+        {
+            using var ifs = new FileStream(gzipFilePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+            return DecompressGZipToMemoryStream(ifs);
+        }
+
+        /// <summary>
+        /// Decompress gzip compressed data in specified <see cref="Stream"/> to <see cref="MemoryStream"/>.
+        /// </summary>
+        /// <param name="gzipCompressedStream">Gzip compressed file path</param>
+        /// <returns><see cref="MemoryStream"/> of decompress data.</returns>
+        private static MemoryStream DecompressGZipToMemoryStream(Stream gzipCompressedStream)
+        {
+            var pos = gzipCompressedStream.Position;
+            gzipCompressedStream.Seek(-4, SeekOrigin.End);
+
+            Span<byte> buf = stackalloc byte[4];
+            var nRead = gzipCompressedStream.Read(buf);
+
+            gzipCompressedStream.Position = pos;
+
+            if (nRead < buf.Length)
+            {
+                throw new InvalidDataException("Failed to read original data size of gzip.");
+            }
+
+            var decompressedSize = buf[0] | (buf[1] << 8) | (buf[2] << 16) | (buf[3] << 24);
+
+            var decompressedMs = new MemoryStream(decompressedSize);
+            using (var dgs = new GZipStream(gzipCompressedStream, CompressionMode.Decompress))
+            {
+                dgs.CopyTo(decompressedMs);
+            }
+
+            if (decompressedSize != decompressedMs.Length)
+            {
+                _logger.Warn(
+                    "The decompressed size recorded in the gzip file differs from the actual decompressed size: {0} Bytes and {1} Bytes.",
+                    decompressedSize,
+                    decompressedMs.Length);
+            }
+
+            return decompressedMs;
         }
 
         /// <summary>
