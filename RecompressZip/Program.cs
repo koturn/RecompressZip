@@ -299,7 +299,7 @@ namespace RecompressZip
             var isRecompressDone = false;
             try
             {
-                _logger.Info("Recompress start: {0}", srcFilePath);
+                _logger.Info("Recompress {0} start", srcFilePath);
 
                 var srcFileSize = new FileInfo(srcFilePath).Length;
                 var totalSw = Stopwatch.StartNew();
@@ -316,13 +316,15 @@ namespace RecompressZip
 
                 isRecompressDone = true;
 
-                _logger.Info("Recompress done: {0} ({1} files).", srcFilePath, entryCount);
-                _logger.Info(
-                    "{0:F3} MiB -> {1:F3} MiB (deflated {2:F2}%, {3:F3} seconds)",
+                _logger.Log(
+                    dstFileSize < srcFileSize ? LogLevel.Info : LogLevel.Warn,
+                    "Recompress {0} done: {1:F3} MiB -> {2:F3} MiB (deflated {3:F2}%, {4:F3} seconds, {5} files)",
+                    srcFilePath,
                     ToMiB(srcFileSize),
                     ToMiB(dstFileSize),
                     CalcDeflatedRate(srcFileSize, dstFileSize) * 100.0,
-                    totalSw.ElapsedMilliseconds / 1000.0);
+                    totalSw.ElapsedMilliseconds / 1000.0,
+                    entryCount);
 
                 if (dstFilePath != null && execOptions.IsOverwrite)
                 {
@@ -401,7 +403,7 @@ namespace RecompressZip
                 }
                 else
                 {
-                    throw new InvalidDataException($"Both {nameof(compressedData)} and  {nameof(recompressedData)} is null");
+                    throw new InvalidDataException($"Both {nameof(compressedData)} and {nameof(recompressedData)} is null");
                 }
             }).ToList();
 
@@ -542,7 +544,7 @@ namespace RecompressZip
         /// <param name="execOptions">Options for execution.</param>
         private static void RecompressGZip(string srcFilePath, string? dstFilePath, in ZopfliOptions zopfliOptions, ExecuteOptions execOptions)
         {
-            _logger.Info("Recompress start: {0}", srcFilePath);
+            _logger.Info("Recompress {0} start", srcFilePath);
 
             var srcFileSize = new FileInfo(srcFilePath).Length;
             var totalSw = Stopwatch.StartNew();
@@ -555,9 +557,10 @@ namespace RecompressZip
                  zopfliOptions,
                  ZopfliFormat.GZip);
 
-            _logger.Info("Recompress done: {0}.", srcFilePath);
-            _logger.Info(
-                "{0:F3} MiB -> {1:F3} MiB (deflated {2:F2}%, {3:F3} seconds)",
+            _logger.Log(
+                (long)recompressedData.ByteLength < srcFileSize ? LogLevel.Info : LogLevel.Warn,
+                "Recompress {0} done: {1:F3} MiB -> {2:F3} MiB (deflated {3:F2}%, {4:F3} seconds)",
+                srcFilePath,
                 ToMiB(srcFileSize),
                 ToMiB((long)recompressedData.ByteLength),
                 CalcDeflatedRate(srcFileSize, (long)recompressedData.ByteLength) * 100.0,
