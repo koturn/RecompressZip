@@ -86,7 +86,7 @@ namespace RecompressZip
 
                     var sw = Stopwatch.StartNew();
                     ZipFile.CreateFromDirectory(target, zipFilePath, CompressionLevel.Fastest, true);
-                    _logger.Info("Compress directory: {0} to {1} done: {2:3F} seconds", target, zipFilePath, sw.ElapsedMilliseconds / 1000.0);
+                    _logger.Info("Compress directory: {0} to {1} done: {2:F3} seconds", target, zipFilePath, sw.ElapsedMilliseconds / 1000.0);
                 }
                 if (!File.Exists(zipFilePath))
                 {
