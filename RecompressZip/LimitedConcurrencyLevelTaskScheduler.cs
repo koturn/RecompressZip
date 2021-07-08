@@ -14,7 +14,7 @@ namespace RecompressZip
     public class LimitedConcurrencyLevelTaskScheduler : TaskScheduler
     {
         /// <summary>
-        /// Indicates whether the current thread is processing work items. 
+        /// Indicates whether the current thread is processing work items.
         /// </summary>
         [ThreadStatic]
         private static bool _currentThreadIsProcessingItems;
@@ -37,7 +37,7 @@ namespace RecompressZip
 
 
         /// <summary>
-        /// Creates a new instance with the specified degree of parallelism. 
+        /// Creates a new instance with the specified degree of parallelism.
         /// </summary>
         /// <param name="maxDegreeOfParallelism"></param>
         public LimitedConcurrencyLevelTaskScheduler(int maxDegreeOfParallelism)
@@ -125,7 +125,7 @@ namespace RecompressZip
         }
 
         /// <summary>
-        /// Attempt to remove a previously scheduled task from the scheduler. 
+        /// Attempt to remove a previously scheduled task from the scheduler.
         /// </summary>
         /// <param name="task">A task to remove from the scheduler</param>
         /// <returns><c>true</c> if the element containing value is successfully removed; otherwise, <c>false</c>.</returns>
