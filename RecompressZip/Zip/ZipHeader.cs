@@ -40,7 +40,7 @@ namespace RecompressZip.Zip
             var signature = (ZipSignature)reader.ReadUInt32();
             if (!Enum.IsDefined(signature))
             {
-                ThrowInvalidDataException(signature);
+                ThrowInvalidDataException(signature, reader.BaseStream.Position - sizeof(ZipSignature));
             }
             return signature;
         }
@@ -50,11 +50,12 @@ namespace RecompressZip.Zip
         /// Throw <see cref="InvalidDataException"/>.
         /// </summary>
         /// <param name="signature">Error signature value.</param>
+        /// <param name="position">Stream position.</param>
         /// <exception cref="InvalidDataException">Always thrown from this method.</exception>
         [DoesNotReturn]
-        private static void ThrowInvalidDataException(ZipSignature signature)
+        private static void ThrowInvalidDataException(ZipSignature signature, long position)
         {
-            ThrowInvalidDataException($"Invalid zip signature: 0x{(uint)signature:X8}");
+            ThrowInvalidDataException($"Invalid zip signature 0x{(uint)signature:X8} at 0x{position:X8}");
         }
 
         /// <summary>
