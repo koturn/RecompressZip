@@ -9,7 +9,7 @@ namespace RecompressZip.Zip
     /// Common part of header, <see cref="LocalFileHeader"/>, <see cref="CentralDirectoryFileHeader"/>
     /// or <see cref="CentralDirectoryEndRecord"/>.
     /// </summary>
-    public class ZipHeader
+    public abstract class ZipHeader
     {
         /// <summary>
         /// File header signature.
