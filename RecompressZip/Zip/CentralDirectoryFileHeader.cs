@@ -19,11 +19,11 @@ namespace RecompressZip.Zip
         /// <summary>
         /// General purpose bit flag.
         /// </summary>
-        public ushort BitFlag { get; set; }
+        public GeneralPurpsoseBitFlags BitFlag { get; set; }
         /// <summary>
         /// Compression method.
         /// </summary>
-        public ushort Method { get; set; }
+        public CompressionMethod Method { get; set; }
         /// <summary>
         /// File last modification time.
         /// </summary>
@@ -111,8 +111,8 @@ namespace RecompressZip.Zip
         public CentralDirectoryFileHeader(
             ushort verMadeBy,
             ushort verExtract,
-            ushort bitFlag,
-            ushort method,
+            GeneralPurpsoseBitFlags bitFlag,
+            CompressionMethod method,
             ushort lastModificationTime,
             ushort lastModificationDate,
             uint crc32,
@@ -158,8 +158,8 @@ namespace RecompressZip.Zip
             writer.Write((uint)Signature);
             writer.Write(VerMadeBy);
             writer.Write(VerExtract);
-            writer.Write(BitFlag);
-            writer.Write(Method);
+            writer.Write((ushort)BitFlag);
+            writer.Write((ushort)Method);
             writer.Write(LastModificationTime);
             writer.Write(LastModificationDate);
             writer.Write(Crc32);
@@ -199,8 +199,8 @@ namespace RecompressZip.Zip
             var header = new CentralDirectoryFileHeader(
                 reader.ReadUInt16(),
                 reader.ReadUInt16(),
-                reader.ReadUInt16(),
-                reader.ReadUInt16(),
+                (GeneralPurpsoseBitFlags)reader.ReadUInt16(),
+                (CompressionMethod)reader.ReadUInt16(),
                 reader.ReadUInt16(),
                 reader.ReadUInt16(),
                 reader.ReadUInt32(),

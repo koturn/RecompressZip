@@ -451,20 +451,22 @@ namespace RecompressZip
             if (header.CompressedLength == 0 || header.Length == 0)
             {
                 _logger.Info(
-                    "[{0}] No data entry: {1} (Method = {2})",
+                    "[{0}] No data entry: {1} (Method = {2}: {3})",
                     procIndex,
                     Encoding.Default.GetString(header.FileName),
+                    (ushort)header.Method,
                     header.Method);
                 return (header, compressedData, null);
 
             }
             // Is not deflate
-            if (header.Method != 8)
+            if (header.Method != CompressionMethod.Deflate)
             {
                 _logger.Info(
-                    "[{0}] Non deflated entry: {1} (Method = {2})",
+                    "[{0}] Non deflated entry: {1} (Method = {2}: {3})",
                     procIndex,
                     Encoding.Default.GetString(header.FileName),
+                    (ushort)header.Method,
                     header.Method);
                 return (header, compressedData, null);
             }

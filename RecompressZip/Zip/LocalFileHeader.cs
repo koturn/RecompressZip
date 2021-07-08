@@ -17,11 +17,11 @@ namespace RecompressZip.Zip
         /// <summary>
         /// General purpose bit flag.
         /// </summary>
-        public ushort BitFlag { get; set; }
+        public GeneralPurpsoseBitFlags BitFlag { get; set; }
         /// <summary>
         /// Compression method; e.g. none = 0, DEFLATE = 8 (or "\0x08\0x00")
         /// </summary>
-        public ushort Method { get; set; }
+        public CompressionMethod Method { get; set; }
         /// <summary>
         /// File last modification time.
         /// </summary>
@@ -75,8 +75,8 @@ namespace RecompressZip.Zip
         /// <param name="extraLength">Extra field length.</param>
         public LocalFileHeader(
             ushort verExtract,
-            ushort bitFlag,
-            ushort method,
+            GeneralPurpsoseBitFlags bitFlag,
+            CompressionMethod method,
             ushort lastModificationTime,
             ushort lastModificationDate,
             uint crc32,
@@ -109,8 +109,8 @@ namespace RecompressZip.Zip
         {
             writer.Write((uint)Signature);
             writer.Write(VerExtract);
-            writer.Write(BitFlag);
-            writer.Write(Method);
+            writer.Write((ushort)BitFlag);
+            writer.Write((ushort)Method);
             writer.Write(LastModificationTime);
             writer.Write(LastModificationDate);
             writer.Write(Crc32);
@@ -143,8 +143,8 @@ namespace RecompressZip.Zip
 
             var header = new LocalFileHeader(
                 reader.ReadUInt16(),
-                reader.ReadUInt16(),
-                reader.ReadUInt16(),
+                (GeneralPurpsoseBitFlags)reader.ReadUInt16(),
+                (CompressionMethod)reader.ReadUInt16(),
                 reader.ReadUInt16(),
                 reader.ReadUInt16(),
                 reader.ReadUInt32(),
