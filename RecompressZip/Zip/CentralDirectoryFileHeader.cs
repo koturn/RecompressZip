@@ -220,5 +220,14 @@ namespace RecompressZip.Zip
 
             return header;
         }
+
+        /// <summary>
+        /// Identify whether <see cref="Name"/> and <see cref="Comment"/> is UTF-8 string or not.
+        /// </summary>
+        /// <returns>True if <see cref="Name"/> and <see cref="Comment"/> is UTF-8 string.</returns>
+        public bool IsUtf8NameAndComment()
+        {
+            return (BitFlag & GeneralPurpsoseBitFlags.Utf8NameAndComment) != 0;
+        }
     };
 }
