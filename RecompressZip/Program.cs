@@ -445,7 +445,6 @@ namespace RecompressZip
         private static async Task<(LocalFileHeader Header, byte[]? CompressedData, SafeBuffer? RecompressedData)> RecompressEntryAsync(BinaryReader reader, ZopfliOptions zopfliOptions, ExecuteOptions execOptions, int procIndex)
         {
             var header = LocalFileHeader.ReadFrom(reader);
-            var compressedData = reader.ReadBytes((int)header.CompressedLength);
 
             // Data part is not exists
             if (header.CompressedLength == 0 || header.Length == 0)
@@ -456,9 +455,12 @@ namespace RecompressZip
                     Encoding.Default.GetString(header.FileName),
                     (ushort)header.Method,
                     header.Method);
-                return (header, compressedData, null);
+                return (header, new byte[0], null);
 
             }
+
+            var compressedData = reader.ReadBytes((int)header.CompressedLength);
+
             // Is not deflate
             if (header.Method != CompressionMethod.Deflate)
             {
