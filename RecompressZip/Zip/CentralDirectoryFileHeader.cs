@@ -228,5 +228,5 @@ namespace RecompressZip.Zip
 
             return header;
         }
-    };
+    }
 }

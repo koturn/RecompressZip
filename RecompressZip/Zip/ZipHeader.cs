@@ -68,5 +68,5 @@ namespace RecompressZip.Zip
         {
             throw new InvalidDataException(message);
         }
-    };
+    }
 }
