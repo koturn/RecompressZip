@@ -622,7 +622,7 @@ namespace RecompressZip
 
             if (nRead < buf.Length)
             {
-                throw new InvalidDataException("Failed to read original data size of gzip.");
+                ThrowInvalidDataException("Failed to read original data size of gzip.");
             }
 
             var decompressedSize = buf[0] | (buf[1] << 8) | (buf[2] << 16) | (buf[3] << 24);
