@@ -58,7 +58,14 @@ namespace RecompressZip.Zip
         /// Extra field.
         /// </summary>
         public byte[] ExtraField { get; set; }
-
+        /// <summary>
+        /// Indicates <see cref="Name"/> and <see cref="Comment"/> is UTF-8 string or not.
+        /// </summary>
+        public bool IsUtf8NameAndComment
+        {
+            get => (BitFlag & GeneralPurpsoseBitFlags.Utf8NameAndComment) != 0;
+            set => BitFlag = value ? (BitFlag | GeneralPurpsoseBitFlags.Utf8NameAndComment) : (BitFlag & ~GeneralPurpsoseBitFlags.Utf8NameAndComment);
+        }
 
         /// <summary>
         /// Initialize all properties.
@@ -157,15 +164,6 @@ namespace RecompressZip.Zip
             baseStream.Read(header.ExtraField);
 
             return header;
-        }
-
-        /// <summary>
-        /// Identify whether <see cref="Name"/> and <see cref="Comment"/> is UTF-8 string or not.
-        /// </summary>
-        /// <returns>True if <see cref="Name"/> and <see cref="Comment"/> is UTF-8 string.</returns>
-        public bool IsUtf8NameAndComment()
-        {
-            return (BitFlag & GeneralPurpsoseBitFlags.Utf8NameAndComment) != 0;
         }
     };
 }

@@ -87,6 +87,14 @@ namespace RecompressZip.Zip
         /// Comment.
         /// </summary>
         public byte[] Comment { get; set; }
+        /// <summary>
+        /// Indicates <see cref="Name"/> and <see cref="Comment"/> is UTF-8 string or not.
+        /// </summary>
+        public bool IsUtf8NameAndComment
+        {
+            get => (BitFlag & GeneralPurpsoseBitFlags.Utf8NameAndComment) != 0;
+            set => BitFlag = value ? (BitFlag | GeneralPurpsoseBitFlags.Utf8NameAndComment) : (BitFlag & ~GeneralPurpsoseBitFlags.Utf8NameAndComment);
+        }
 
 
         /// <summary>
@@ -219,15 +227,6 @@ namespace RecompressZip.Zip
             baseStream.Read(header.Comment);
 
             return header;
-        }
-
-        /// <summary>
-        /// Identify whether <see cref="Name"/> and <see cref="Comment"/> is UTF-8 string or not.
-        /// </summary>
-        /// <returns>True if <see cref="Name"/> and <see cref="Comment"/> is UTF-8 string.</returns>
-        public bool IsUtf8NameAndComment()
-        {
-            return (BitFlag & GeneralPurpsoseBitFlags.Utf8NameAndComment) != 0;
         }
     };
 }
