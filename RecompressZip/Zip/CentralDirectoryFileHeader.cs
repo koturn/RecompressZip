@@ -88,6 +88,14 @@ namespace RecompressZip.Zip
         /// </summary>
         public byte[] Comment { get; set; }
         /// <summary>
+        /// Indicates data of zip entry is encrypted or not.
+        /// </summary>
+        public bool IsEncrypted
+        {
+            get => (BitFlag & GeneralPurpsoseBitFlags.Encrypted) != 0;
+            set => BitFlag = value ? (BitFlag | GeneralPurpsoseBitFlags.Encrypted) : (BitFlag & ~GeneralPurpsoseBitFlags.Encrypted);
+        }
+        /// <summary>
         /// Indicates <see cref="Name"/> and <see cref="Comment"/> is UTF-8 string or not.
         /// </summary>
         public bool IsUtf8NameAndComment
