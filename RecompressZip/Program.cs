@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
@@ -715,6 +716,7 @@ namespace RecompressZip
         /// </summary>
         /// <param name="message">The error message that explains the reason for the exception.</param>
         /// <exception cref="InvalidDataException">Always thrown.</exception>
+        [DoesNotReturn]
         private static void ThrowInvalidDataException(string message)
         {
             throw new InvalidDataException(message);
