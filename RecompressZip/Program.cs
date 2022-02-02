@@ -151,6 +151,7 @@ namespace RecompressZip
             ap.Add('V', "verbose-more", "Allow to output more information to stdout from zopfli.dll.");
             ap.Add("no-block-split", "Don't splits the data in multiple deflate blocks with optimal choice for the block boundaries.");
             ap.Add("no-overwrite", "Don't overwrite PNG files and create images to new zip archive file or directory.");
+            ap.Add("verify-crc32", "Verify CRC-32 value of each zip entry.");
 
             ap.Parse(args);
 
@@ -178,6 +179,7 @@ namespace RecompressZip
                 zo,
                 new ExecuteOptions(
                     ap.GetValue<int>('n'),
+                    ap.GetValue<bool>("verify-crc32"),
                     !ap.GetValue<bool>("no-overwrite"),
                     ap.GetValue<bool>('r'),
                     ap.GetValue<bool>('d')));
@@ -199,6 +201,7 @@ namespace RecompressZip
 
             Console.WriteLine("- - - Execution Parameters - - -");
             Console.WriteLine($"Number of Threads: {execOptions.NumberOfThreads}");
+            Console.WriteLine($"Verify CRC-32: {execOptions.IsVerifyCrc32}");
             Console.WriteLine($"Overwrite: {execOptions.IsOverwrite}");
             Console.WriteLine($"Replace Force: {execOptions.IsReplaceForce}");
             Console.WriteLine($"Dry Run: {execOptions.IsDryRun}");
@@ -481,6 +484,11 @@ namespace RecompressZip
                     dds.CopyTo(decompressedMs);
                 }
 
+                if (execOptions.IsVerifyCrc32)
+                {
+                    VerifyCrc32(CreateSpan(decompressedMs), header.Crc32);
+                }
+
                 var recompressedData = await _taskFactory.StartNew(() =>
                 {
                     var entryName = Encoding.Default.GetString(header.FileName);
@@ -637,6 +645,16 @@ namespace RecompressZip
         }
 
         /// <summary>
+        /// Create <see cref="Span{T}"/> from <see cref="MemoryStream"/>.
+        /// </summary>
+        /// <param name="ms">An instance of <see cref="MemoryStream"/>.</param>
+        /// <returns><see cref="Span{T}"/> of <paramref name="ms"/>.</returns>
+        private static Span<byte> CreateSpan(MemoryStream ms)
+        {
+            return ms.GetBuffer().AsSpan(0, (int)ms.Length);
+        }
+
+        /// <summary>
         /// Create <see cref="Span{T}"/> from <see cref="SafeBuffer"/>.
         /// </summary>
         /// <param name="sb">An instance of <see cref="SafeBuffer"/>.</param>
@@ -644,6 +662,21 @@ namespace RecompressZip
         private static unsafe Span<byte> CreateSpan(SafeBuffer sb)
         {
             return new Span<byte>((void*)sb.DangerousGetHandle(), (int)sb.ByteLength);
+        }
+
+        /// <summary>
+        /// <para>Verify CRC-32 value of data.</para>
+        /// <para>Throw <see cref="InvalidDataException"/> if invalid CRC-32 value is detected.</para>
+        /// </summary>
+        /// <param name="data">Data to check.</param>
+        /// <param name="crc32">Expected CRC-32 value.</param>
+        private static void VerifyCrc32(Span<byte> data, uint crc32)
+        {
+            var actualCrc32 = Crc32Calculator.Compute(data);
+            if (actualCrc32 != crc32)
+            {
+                ThrowInvalidDataException($"Invalid CRC-32 value detected. Expected: {crc32:X8}, Actual: {actualCrc32:X8}");
+            }
         }
 
         /// <summary>
@@ -675,6 +708,16 @@ namespace RecompressZip
         private static double CalcDeflatedRate(long originalSize, long compressedSize)
         {
             return 1.0 - (double)compressedSize / originalSize;
+        }
+
+        /// <summary>
+        /// Throw <see cref="InvalidDataException"/>.
+        /// </summary>
+        /// <param name="message">The error message that explains the reason for the exception.</param>
+        /// <exception cref="InvalidDataException">Always thrown.</exception>
+        private static void ThrowInvalidDataException(string message)
+        {
+            throw new InvalidDataException(message);
         }
 
         /// <summary>
