@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 
 
 namespace RecompressZip
@@ -17,6 +17,10 @@ namespace RecompressZip
         /// Number of threads for re-compressing. -1 means unlimited.
         /// </summary>
         public int NumberOfThreads { get; set; }
+        /// <summary>
+        /// Password of zip archive.
+        /// </summary>
+        public string? Password { get; set; }
         /// <summary>
         /// Force compress non compressed data.
         /// </summary>
@@ -49,6 +53,7 @@ namespace RecompressZip
         /// Initialize all members.
         /// </summary>
         /// <param name="numberOfThreads">Number of threads for re-compressing. -1 means unlimited.</param>
+        /// <param name="password">Password of zip archive.</param>
         /// <param name="isForceCompress">Force compress non compressed data.</param>
         /// <param name="isVerifyCrc32">Verify CRC-32 value of zip entry or not.</param>
         /// <param name="isOverwrite">Overwrite original files.</param>
@@ -56,6 +61,7 @@ namespace RecompressZip
         /// <param name="isDryRun">Don't save any files, just see the console output.</param>
         public ExecuteOptions(
             int numberOfThreads = DefaultNumberOfThreads,
+            string? password = null,
             bool isForceCompress = false,
             bool isVerifyCrc32 = false,
             bool isOverwrite = false,
@@ -63,6 +69,7 @@ namespace RecompressZip
             bool isDryRun = false)
         {
             NumberOfThreads = numberOfThreads;
+            Password = password;
             IsForceCompress = isForceCompress;
             IsVerifyCrc32 = isVerifyCrc32;
             IsOverwrite = isOverwrite;
@@ -78,6 +85,7 @@ namespace RecompressZip
         {
             return new ExecuteOptions(
                 NumberOfThreads,
+                Password,
                 IsForceCompress,
                 IsVerifyCrc32,
                 IsOverwrite,

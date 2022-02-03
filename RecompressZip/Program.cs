@@ -166,6 +166,7 @@ namespace RecompressZip
             ap.Add('n', "num-thread", OptionType.RequiredArgument,
                 "Number of threads for re-compressing. 0 or negative value means unlimited.",
                 "N", ExecuteOptions.DefaultNumberOfThreads);
+            ap.Add('p', "password", OptionType.RequiredArgument, "Specify password of zip archive");
             ap.Add('r', "replace-force", "Do the replacement even if the size of the recompressed data is larger than the size of the original data.");
             ap.Add('v', "verbose", "Allow to output to stdout from zopfli.dll.");
             ap.Add('V', "verbose-more", "Allow to output more information to stdout from zopfli.dll.");
@@ -199,6 +200,7 @@ namespace RecompressZip
                 zo,
                 new ExecuteOptions(
                     ap.GetValue<int>('n'),
+                    ap.GetValue('p'),
                     ap.GetValue<bool>('f'),
                     ap.GetValue<bool>("verify-crc32"),
                     !ap.GetValue<bool>("no-overwrite"),
@@ -222,6 +224,7 @@ namespace RecompressZip
 
             Console.WriteLine("- - - Execution Parameters - - -");
             Console.WriteLine($"Number of Threads: {execOptions.NumberOfThreads}");
+            Console.WriteLine($"Password: {execOptions.Password}");
             Console.WriteLine($"Verify CRC-32: {execOptions.IsVerifyCrc32}");
             Console.WriteLine($"Overwrite: {execOptions.IsOverwrite}");
             Console.WriteLine($"Replace Force: {execOptions.IsReplaceForce}");
@@ -442,7 +445,7 @@ namespace RecompressZip
         {
             var signature = ZipHeader.ReadSignature(reader);
 
-            var taskList = new List<Task<(LocalFileHeader Header, byte[]? CompressedData, SafeBuffer? RecompressedData)>>();
+            var taskList = new List<Task<(LocalFileHeader Header, byte[]? cryptHeader, byte[]? CompressedData, SafeBuffer? RecompressedData)>>();
             while (signature == ZipSignature.LocalFileHeader)
             {
                 taskList.Add(RecompressEntryAsync(reader, zopfliOptions, execOptions, taskList.Count + 1));
@@ -454,8 +457,13 @@ namespace RecompressZip
             {
                 var offset = (uint)writer.BaseStream.Position;
 
-                var (header, compressedData, recompressedData) = task.Result;
+                var (header, cryptHeader, compressedData, recompressedData) = task.Result;
                 header.WriteTo(writer);
+                if (cryptHeader != null && header.IsEncrypted)
+                {
+                    writer.Write(cryptHeader);
+                }
+
                 if (recompressedData == null && compressedData == null)
                 {
                     throw new InvalidDataException($"Both {nameof(compressedData)} and {nameof(recompressedData)} is null");
@@ -511,10 +519,19 @@ namespace RecompressZip
         /// <param name="zopfliOptions">Options for zopfli.</param>
         /// <param name="execOptions">Options for execution.</param>
         /// <param name="procIndex">Process index for logging.</param>
-        /// <returns>A tuple of new local file header and compressed data.</returns>
-        private static async Task<(LocalFileHeader Header, byte[]? CompressedData, SafeBuffer? RecompressedData)> RecompressEntryAsync(BinaryReader reader, ZopfliOptions zopfliOptions, ExecuteOptions execOptions, int procIndex)
+        /// <returns>A tuple of new local file header, crypt header and compressed data.</returns>
+        private static async Task<(LocalFileHeader Header, byte[]? cryptHeader, byte[]? CompressedData, SafeBuffer? RecompressedData)> RecompressEntryAsync(BinaryReader reader, ZopfliOptions zopfliOptions, ExecuteOptions execOptions, int procIndex)
         {
             var header = LocalFileHeader.ReadFrom(reader);
+
+            // Read encrypt header.
+            byte[]? cryptHeader = null;
+            if (header.IsEncrypted)
+            {
+                cryptHeader = new byte[ZipCryptor.CryptHeaderSize];
+                reader.BaseStream.Read(cryptHeader);
+            }
+            var cryptHeaderLength = cryptHeader == null ? 0 : cryptHeader.Length;
 
             var isExistsDataDescriptorSignature = false;
             if (header.HasDataDescriptor)
@@ -538,10 +555,10 @@ namespace RecompressZip
                     reader.BaseStream.Position += isExistsDataDescriptorSignature ? 16 : 12;
                 }
                 header.HasDataDescriptor = false;
-                return (header, data, null);
+                return (header, cryptHeader, data, null);
             }
 
-            var compressedData = reader.ReadBytes((int)header.CompressedLength);
+            var compressedData = reader.ReadBytes((int)header.CompressedLength - cryptHeaderLength);
 
             if (header.HasDataDescriptor)
             {
@@ -560,15 +577,26 @@ namespace RecompressZip
                     header.Method);
                 if (header.Method != CompressionMethod.NoCompression || !execOptions.IsForceCompress)
                 {
-                    return (header, compressedData, null);
+                    return (header, cryptHeader, compressedData, null);
                 }
             }
 
             using (var decompressedMs = new MemoryStream((int)header.Length))
             {
+                var decryptedCompressedData = compressedData;
+                if (header.IsEncrypted)
+                {
+                    var password = execOptions.Password;
+                    if (password == null)
+                    {
+                        throw new ArgumentNullException(nameof(execOptions.Password));
+                    }
+                    decryptedCompressedData = ZipDecryptor.DecryptData(compressedData, password, cryptHeader);
+                }
+
                 if (header.Method == CompressionMethod.NoCompression)
                 {
-                    using (var ims = new MemoryStream(compressedData))
+                    using (var ims = new MemoryStream(decryptedCompressedData))
                     {
                         ims.CopyTo(decompressedMs);
                     }
@@ -576,14 +604,14 @@ namespace RecompressZip
                 }
                 else
                 {
-                    using (var compressedMs = new MemoryStream(compressedData))
+                    using (var compressedMs = new MemoryStream(decryptedCompressedData))
                     using (var dds = new DeflateStream(compressedMs, CompressionMode.Decompress))
                     {
                         dds.CopyTo(decompressedMs);
                     }
                 }
 
-                if (execOptions.IsVerifyCrc32)
+                if (execOptions.IsVerifyCrc32 || execOptions.Password != null)
                 {
                     VerifyCrc32(CreateSpan(decompressedMs), header.Crc32);
                 }
@@ -605,14 +633,25 @@ namespace RecompressZip
 
                     var byteLength = (int)recompressedData.ByteLength;
                     _logger.Log(
-                        byteLength < compressedData.Length ? LogLevel.Info : LogLevel.Warn,
+                        byteLength < decryptedCompressedData.Length ? LogLevel.Info : LogLevel.Warn,
                         "[{0}] Compress {1} done: {2:F3} KiB -> {3:F3} KiB (deflated {4:F2}%, {5:F3} seconds)",
                         procIndex,
                         entryName,
-                        ToKiB(compressedData.Length),
+                        ToKiB(decryptedCompressedData.Length),
                         ToKiB(byteLength),
-                        CalcDeflatedRate(compressedData.Length, byteLength) * 100.0,
+                        CalcDeflatedRate(decryptedCompressedData.Length, byteLength) * 100.0,
                         sw.ElapsedMilliseconds / 1000.0);
+
+                    if (header.IsEncrypted && (recompressedData.ByteLength < (ulong)decryptedCompressedData.Length || execOptions.IsReplaceForce))
+                    {
+                        var password = execOptions.Password;
+                        if (password == null)
+                        {
+                            throw new ArgumentNullException(nameof(execOptions.Password));
+                        }
+                        var rdSpan = CreateSpan(recompressedData);
+                        ZipEncryptor.EncryptData(rdSpan, rdSpan, password, cryptHeader);
+                    }
 
                     return recompressedData;
                 });
@@ -621,12 +660,12 @@ namespace RecompressZip
                 if (byteLength < (ulong)compressedData.Length || execOptions.IsReplaceForce)
                 {
                     header.DeflateCompressionLevel = DeflateCompressionLevels.Maximum;
-                    header.CompressedLength = (uint)byteLength;
-                    return (header, null, recompressedData);
+                    header.CompressedLength = (uint)byteLength + (uint)cryptHeaderLength;
+                    return (header, cryptHeader, null, recompressedData);
                 }
                 else
                 {
-                    return (header, compressedData, null);
+                    return (header, cryptHeader, compressedData, null);
                 }
             }
         }
