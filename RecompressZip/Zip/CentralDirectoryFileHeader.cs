@@ -96,6 +96,14 @@ namespace RecompressZip.Zip
             set => BitFlag = value ? (BitFlag | GeneralPurpsoseBitFlags.Encrypted) : (BitFlag & ~GeneralPurpsoseBitFlags.Encrypted);
         }
         /// <summary>
+        /// Indicates zip entry has data descriptor.
+        /// </summary>
+        public bool HasDataDescriptor
+        {
+            get => (BitFlag & GeneralPurpsoseBitFlags.HasDataDescriptor) != 0;
+            set => BitFlag = value ? (BitFlag | GeneralPurpsoseBitFlags.HasDataDescriptor) : (BitFlag & ~GeneralPurpsoseBitFlags.HasDataDescriptor);
+        }
+        /// <summary>
         /// Indicates <see cref="Name"/> and <see cref="Comment"/> is UTF-8 string or not.
         /// </summary>
         public bool IsUtf8NameAndComment

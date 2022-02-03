@@ -450,6 +450,11 @@ namespace RecompressZip
         {
             var header = LocalFileHeader.ReadFrom(reader);
 
+            if (header.HasDataDescriptor)
+            {
+                throw new NotSupportedException("Zip entry with data descriptor is not supported");
+            }
+
             // Data part is not exists
             if (header.CompressedLength == 0 || header.Length == 0)
             {
