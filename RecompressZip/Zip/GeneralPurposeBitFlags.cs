@@ -111,6 +111,10 @@ namespace RecompressZip.Zip
         /// <summary>
         /// Reserved by PKWARE.
         /// </summary>
-        ReservedByPkware3 = 0x8000
+        ReservedByPkware3 = 0x8000,
+        /// <summary>
+        /// Bit combination of <see cref="CompressFeature1"/> and <see cref="CompressFeature2"/>.
+        /// </summary>
+        CompressFeatureMask = CompressFeature1 | CompressFeature2
     }
 }

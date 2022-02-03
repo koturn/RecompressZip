@@ -47,6 +47,18 @@ namespace RecompressZip.Zip
 
 
         /// <summary>
+        /// Throw <see cref="ArgumentException"/>.
+        /// </summary>
+        /// <param name="message">Exception message.</param>
+        /// <param name="paramName">Parameter name.</param>
+        /// <exception cref="InvalidDataException">Always thrown from this method.</exception>
+        [DoesNotReturn]
+        protected static void ThrowArgumentException(string message, string paramName)
+        {
+            throw new ArgumentException(message, paramName);
+        }
+
+        /// <summary>
         /// Throw <see cref="InvalidDataException"/>.
         /// </summary>
         /// <param name="signature">Error signature value.</param>

@@ -418,6 +418,7 @@ namespace RecompressZip
                 var header = CentralDirectoryFileHeader.ReadFrom(reader);
                 resultEnumerator.MoveNext();
                 var cr = resultEnumerator.Current;
+                header.DeflateCompressionLevel = DeflateCompressionLevels.Maximum;
                 header.CompressedLength = cr.CompressedLength;
                 header.Length = cr.Length;
                 header.Offset = cr.Offset;
@@ -527,6 +528,7 @@ namespace RecompressZip
                 var byteLength = recompressedData.ByteLength;
                 if (byteLength < (ulong)compressedData.Length || execOptions.IsReplaceForce)
                 {
+                    header.DeflateCompressionLevel = DeflateCompressionLevels.Maximum;
                     header.CompressedLength = (uint)byteLength;
                     return (header, null, recompressedData);
                 }

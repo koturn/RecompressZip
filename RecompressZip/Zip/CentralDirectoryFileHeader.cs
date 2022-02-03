@@ -1,3 +1,4 @@
+using System;
 using System.IO;
 
 
@@ -94,6 +95,24 @@ namespace RecompressZip.Zip
         {
             get => (BitFlag & GeneralPurpsoseBitFlags.Encrypted) != 0;
             set => BitFlag = value ? (BitFlag | GeneralPurpsoseBitFlags.Encrypted) : (BitFlag & ~GeneralPurpsoseBitFlags.Encrypted);
+        }
+        /// <summary>
+        /// Deflate compression level, represented by the Bit 1 and Bit 2 of <see cref="BitFlag"/>.
+        /// </summary>
+        public DeflateCompressionLevels DeflateCompressionLevel
+        {
+            get => (DeflateCompressionLevels)((byte)(BitFlag & GeneralPurpsoseBitFlags.CompressFeatureMask) >> 1);
+            set
+            {
+                if (!Enum.IsDefined(value))
+                {
+                    ThrowArgumentException($"Value is not defined in {nameof(DeflateCompressionLevels)}.", nameof(DeflateCompressionLevel));
+                }
+                // Unset Bit 1 and Bit 2.
+                BitFlag &= ~GeneralPurpsoseBitFlags.CompressFeatureMask;
+                // Set Bit 1 and Bit 2.
+                BitFlag |= (GeneralPurpsoseBitFlags)((ushort)value << 1);
+            }
         }
         /// <summary>
         /// Indicates zip entry has data descriptor.
