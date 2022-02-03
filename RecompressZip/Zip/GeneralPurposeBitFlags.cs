@@ -61,7 +61,7 @@ namespace RecompressZip.Zip
         /// (Note: PKZIP version 2.04g for DOS only recognizes this bit for method 8 compression,
         /// newer versions of PKZIP recognize this bit for any compression method.)</para>
         /// </summary>
-        ZeroLengthAndCrc32InLocalHeader = 0x0008,
+        HasDataDescriptor = 0x0008,
         /// <summary>
         /// Reserved for use with method 8, for enhanced deflating.
         /// </summary>
