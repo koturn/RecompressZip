@@ -456,23 +456,23 @@ namespace RecompressZip
 
                 var (header, compressedData, recompressedData) = task.Result;
                 header.WriteTo(writer);
+                if (recompressedData == null && compressedData == null)
+                {
+                    throw new InvalidDataException($"Both {nameof(compressedData)} and {nameof(recompressedData)} is null");
+                }
+
                 if (recompressedData != null)
                 {
                     using (recompressedData)
                     {
                         writer.Write(CreateSpan(recompressedData));
                     }
-                    return new CompressionResult(header, offset);
                 }
                 else if (compressedData != null)
                 {
                     writer.Write(compressedData);
-                    return new CompressionResult(header, offset);
                 }
-                else
-                {
-                    throw new InvalidDataException($"Both {nameof(compressedData)} and {nameof(recompressedData)} is null");
-                }
+                return new CompressionResult(header, offset);
             }).ToList();
 
             var resultEnumerator = resultList.GetEnumerator();
@@ -482,7 +482,7 @@ namespace RecompressZip
                 var header = CentralDirectoryFileHeader.ReadFrom(reader);
                 resultEnumerator.MoveNext();
                 var cr = resultEnumerator.Current;
-                header.DeflateCompressionLevel = DeflateCompressionLevels.Maximum;
+                header.BitFlag = cr.Header.BitFlag;
                 header.Method = cr.Header.Method;
                 header.CompressedLength = cr.Header.CompressedLength;
                 header.Length = cr.Header.Length;
