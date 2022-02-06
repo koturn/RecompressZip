@@ -253,7 +253,7 @@ namespace RecompressZip
         /// </summary>
         /// <param name="data">Binary data</param>
         /// <returns>True if the specified binary has a zip signature, otherwise false.</returns>
-        private static bool HasZipSignature(Span<byte> data)
+        private static bool HasZipSignature(ReadOnlySpan<byte> data)
         {
             return data.Length >= 4
                 && data[0] == 'P'
@@ -287,7 +287,7 @@ namespace RecompressZip
         /// </summary>
         /// <param name="data">Binary data</param>
         /// <returns>True if the specified binary has a gzip signature, otherwise false.</returns>
-        private static bool HasGZipSignature(Span<byte> data)
+        private static bool HasGZipSignature(ReadOnlySpan<byte> data)
         {
             return data.Length >= 3
                 && data[0] == 0x1f
@@ -319,7 +319,7 @@ namespace RecompressZip
         /// </summary>
         /// <param name="data">Binary data</param>
         /// <returns>True if the specified binary has a PNG signature, otherwise false.</returns>
-        private static bool HasPngSignature(Span<byte> data)
+        private static bool HasPngSignature(ReadOnlySpan<byte> data)
         {
             var pngSignature = _pngSignature;
             if (data.Length < pngSignature.Length)
@@ -628,7 +628,7 @@ namespace RecompressZip
         /// <exception cref="Exception"></exception>
         private static (bool HasSignature, uint Crc32, uint CompressedLength, uint Length) FindDataDescriptor(BinaryReader reader)
         {
-            Span<byte> sigPrefix = stackalloc byte[] { (byte)'P', (byte)'K' };
+            ReadOnlySpan<byte> sigPrefix = stackalloc byte[] { (byte)'P', (byte)'K' };
             var ms = (MemoryStream)reader.BaseStream;
             var curPos = ms.Position;
             var data = ms.GetBuffer();
@@ -981,7 +981,7 @@ namespace RecompressZip
         /// <param name="bw"><see cref="BinaryWriter"/> of data destination.</param>
         /// <param name="chunkTypeAscii">Chunk type name byte sequance.</param>
         /// <param name="chunkData">Chunk data.</param>
-        private static void WriteChunk(BinaryWriter bw, Span<byte> chunkTypeAscii, Span<byte> chunkData)
+        private static void WriteChunk(BinaryWriter bw, ReadOnlySpan<byte> chunkTypeAscii, Span<byte> chunkData)
         {
             bw.Write(BinaryPrimitives.ReverseEndianness(chunkData.Length));
             bw.Write(chunkTypeAscii);
@@ -1032,7 +1032,7 @@ namespace RecompressZip
         /// </summary>
         /// <param name="data">Data to check.</param>
         /// <param name="crc32">Expected CRC-32 value.</param>
-        private static void VerifyCrc32(Span<byte> data, uint crc32)
+        private static void VerifyCrc32(ReadOnlySpan<byte> data, uint crc32)
         {
             var actualCrc32 = Crc32Calculator.Compute(data);
             if (actualCrc32 != crc32)

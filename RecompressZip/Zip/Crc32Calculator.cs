@@ -40,7 +40,7 @@ namespace RecompressZip.Zip
         /// </summary>
         /// <param name="buf"><see cref="Span{T}"/> of <see cref="byte"/> data.</param>
         /// <returns>CRC-32 value.</returns>
-        public static uint Compute(Span<byte> buf)
+        public static uint Compute(ReadOnlySpan<byte> buf)
         {
             return Finalize(Update(buf));
         }
@@ -79,7 +79,7 @@ namespace RecompressZip.Zip
         /// <param name="buf"><see cref="Span{T}"/> of <see cref="byte"/> data.</param>
         /// <param name="crc">Intermidiate CRC-32 value.</param>
         /// <returns>Updated intermidiate CRC-32 value.</returns>
-        public static uint Update(Span<byte> buf, uint crc = 0xffffffff)
+        public static uint Update(ReadOnlySpan<byte> buf, uint crc = 0xffffffff)
         {
             var crcTable = GetTable();
 
