@@ -12,6 +12,8 @@ Implementation of [komiya-atsushi/zipzop](https://github.com/komiya-atsushi/zipz
 
 - Parallel processing of recompression for each file.
 - Available all options of zopfli.
+- Able to handle zip files with Data Descriptor.
+- Also supports recompression of gzip and PNG files.
 
 
 ## Usage
