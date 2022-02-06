@@ -173,6 +173,32 @@ namespace RecompressZip.Zip
             writer.Write(ExtraField);
         }
 
+        /// <summary>
+        /// Copy common data to <see cref="CentralDirectoryFileHeader"/>.
+        /// </summary>
+        /// <param name="header">An instance of <see cref="CentralDirectoryFileHeader"/>.</param>
+        public void CopyTo(CentralDirectoryFileHeader header)
+        {
+            header.VerExtract = VerExtract;
+            header.BitFlag = BitFlag;
+            header.Method = Method;
+            header.LastModificationTime = LastModificationTime;
+            header.LastModificationDate = LastModificationDate;
+            header.Crc32 = Crc32;
+            header.CompressedLength = CompressedLength;
+            header.Length = Length;
+            header.FileNameLength = FileNameLength;
+            header.ExtraLength = ExtraLength;
+            if (FileNameLength > 0)
+            {
+                header.FileName = (byte[])FileName.Clone();
+            }
+            if (ExtraLength > 0)
+            {
+                header.ExtraField = (byte[])ExtraField.Clone();
+            }
+        }
+
 
         /// <summary>
         /// Read local file header from <see cref="BinaryReader"/>.
