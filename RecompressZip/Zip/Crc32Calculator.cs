@@ -111,7 +111,7 @@ namespace RecompressZip.Zip
         /// <returns>CRC-32 value.</returns>
         public static uint Finalize(uint crc)
         {
-            return crc ^ 0xffffffff;
+            return ~crc;
         }
 
 
