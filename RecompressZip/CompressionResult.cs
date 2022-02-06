@@ -1,4 +1,7 @@
-﻿namespace RecompressZip
+﻿using RecompressZip.Zip;
+
+
+namespace RecompressZip
 {
     /// <summary>
     /// Comression result.
@@ -6,13 +9,9 @@
     public struct CompressionResult
     {
         /// <summary>
-        /// Compressed size.
+        /// Local file header.
         /// </summary>
-        public uint CompressedLength { get; set; }
-        /// <summary>
-        /// Uncompressed size.
-        /// </summary>
-        public uint Length { get; set; }
+        public LocalFileHeader Header { get; }
         /// <summary>
         /// Relative offset of local file header.
         /// </summary>
@@ -21,13 +20,11 @@
         /// <summary>
         /// Initialize all properties.
         /// </summary>
-        /// <param name="compressedLength">Compressed size.</param>
-        /// <param name="length">Uncompressed size.</param>
+        /// <param name="header">Local file header.</param>
         /// <param name="offset">Relative offset of local file header.</param>
-        public CompressionResult(uint compressedLength, uint length, uint offset)
+        public CompressionResult(LocalFileHeader header, uint offset)
         {
-            CompressedLength = compressedLength;
-            Length = length;
+            Header = header;
             Offset = offset;
         }
     }

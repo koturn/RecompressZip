@@ -157,6 +157,7 @@ namespace RecompressZip
                 "Maximum amount of blocks to split into (0 for unlimited, but this can give extreme results that hurt compression on some files).\n"
                 + indent2 + "Default: 15", "NUM", zo.BlockSplittingMax);
             ap.Add('d', "dry-run", "Don't save any files, just see the console output.");
+            ap.Add('f', "compress-force", "Compress no-compressed data.");
             ap.AddHelp();
             ap.Add('i', "num-iteration", OptionType.RequiredArgument,
                 "Maximum amount of times to rerun forward and backward pass to optimize LZ77 compression cost.\n"
@@ -198,6 +199,7 @@ namespace RecompressZip
                 zo,
                 new ExecuteOptions(
                     ap.GetValue<int>('n'),
+                    ap.GetValue<bool>('f'),
                     ap.GetValue<bool>("verify-crc32"),
                     !ap.GetValue<bool>("no-overwrite"),
                     ap.GetValue<bool>('r'),
@@ -460,18 +462,12 @@ namespace RecompressZip
                     {
                         writer.Write(CreateSpan(recompressedData));
                     }
-                    return new CompressionResult(
-                        (uint)recompressedData.ByteLength,
-                        header.Length,
-                        offset);
+                    return new CompressionResult(header, offset);
                 }
                 else if (compressedData != null)
                 {
                     writer.Write(compressedData);
-                    return new CompressionResult(
-                        (uint)compressedData.Length,
-                        header.Length,
-                        offset);
+                    return new CompressionResult(header, offset);
                 }
                 else
                 {
@@ -487,8 +483,9 @@ namespace RecompressZip
                 resultEnumerator.MoveNext();
                 var cr = resultEnumerator.Current;
                 header.DeflateCompressionLevel = DeflateCompressionLevels.Maximum;
-                header.CompressedLength = cr.CompressedLength;
-                header.Length = cr.Length;
+                header.Method = cr.Header.Method;
+                header.CompressedLength = cr.Header.CompressedLength;
+                header.Length = cr.Header.Length;
                 header.Offset = cr.Offset;
                 header.WriteTo(writer);
 
@@ -561,15 +558,29 @@ namespace RecompressZip
                     Encoding.Default.GetString(header.FileName),
                     (ushort)header.Method,
                     header.Method);
-                return (header, compressedData, null);
+                if (header.Method != CompressionMethod.NoCompression || !execOptions.IsForceCompress)
+                {
+                    return (header, compressedData, null);
+                }
             }
 
             using (var decompressedMs = new MemoryStream((int)header.Length))
             {
-                using (var compressedMs = new MemoryStream(compressedData))
-                using (var dds = new DeflateStream(compressedMs, CompressionMode.Decompress))
+                if (header.Method == CompressionMethod.NoCompression)
                 {
-                    dds.CopyTo(decompressedMs);
+                    using (var ims = new MemoryStream(compressedData))
+                    {
+                        ims.CopyTo(decompressedMs);
+                    }
+                    header.Method = CompressionMethod.Deflate;
+                }
+                else
+                {
+                    using (var compressedMs = new MemoryStream(compressedData))
+                    using (var dds = new DeflateStream(compressedMs, CompressionMode.Decompress))
+                    {
+                        dds.CopyTo(decompressedMs);
+                    }
                 }
 
                 if (execOptions.IsVerifyCrc32)
