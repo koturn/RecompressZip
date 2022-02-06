@@ -155,9 +155,18 @@ namespace RecompressZip.Zip
             writer.Write((ushort)Method);
             writer.Write(LastModificationTime);
             writer.Write(LastModificationDate);
-            writer.Write(Crc32);
-            writer.Write(CompressedLength);
-            writer.Write(Length);
+            if (HasDataDescriptor)
+            {
+                writer.Write(0u);
+                writer.Write(0u);
+                writer.Write(0u);
+            }
+            else
+            {
+                writer.Write(Crc32);
+                writer.Write(CompressedLength);
+                writer.Write(Length);
+            }
             writer.Write(FileNameLength);
             writer.Write(ExtraLength);
             writer.Write(FileName);

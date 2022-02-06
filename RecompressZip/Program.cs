@@ -310,12 +310,19 @@ namespace RecompressZip
                 int entryCount;
                 long dstFileSize;
 
-                using (var ifs = new FileStream(srcFilePath, FileMode.Open, FileAccess.Read, FileShare.Read))
-                using (var ofs = dstFilePath == null ? (Stream)new MemoryStream((int)srcFileSize)
-                    : new FileStream(dstFilePath, FileMode.Create, FileAccess.Write, FileShare.Read))
+                using (var ims = new MemoryStream((int)srcFileSize))
                 {
-                    entryCount = RecompressZip(ifs, ofs, zopfliOptions, execOptions);
-                    dstFileSize = ofs.Length;
+                    using (var ifs = new FileStream(srcFilePath, FileMode.Open, FileAccess.Read, FileShare.Read))
+                    {
+                        ifs.CopyTo(ims);
+                    }
+                    ims.Position = 0;
+                    using (var ofs = dstFilePath == null ? (Stream)new MemoryStream((int)srcFileSize)
+                        : new FileStream(dstFilePath, FileMode.Create, FileAccess.Write, FileShare.Read))
+                    {
+                        entryCount = RecompressZip(ims, ofs, zopfliOptions, execOptions);
+                        dstFileSize = ofs.Length;
+                    }
                 }
 
                 isRecompressDone = true;
@@ -451,13 +458,14 @@ namespace RecompressZip
         {
             var header = LocalFileHeader.ReadFrom(reader);
 
+            var isExistsDataDescriptorSignature = false;
             if (header.HasDataDescriptor)
             {
-                throw new NotSupportedException("Zip entry with data descriptor is not supported");
+                (isExistsDataDescriptorSignature, header.Crc32, header.CompressedLength, header.Length) = FindDataDescriptor(reader);
             }
 
             // Data part is not exists
-            if (header.CompressedLength == 0 || header.Length == 0)
+            if (header.Length == 0)
             {
                 _logger.Info(
                     "[{0}] No data entry: {1} (Method = {2}: {3})",
@@ -465,11 +473,23 @@ namespace RecompressZip
                     Encoding.Default.GetString(header.FileName),
                     (ushort)header.Method,
                     header.Method);
-                return (header, new byte[0], null);
-
+                var compressedLength = header.CompressedLength;
+                var data = header.CompressedLength == 0 ? new byte[0] : reader.ReadBytes((int)header.CompressedLength);
+                if (header.HasDataDescriptor)
+                {
+                    reader.BaseStream.Position += isExistsDataDescriptorSignature ? 16 : 12;
+                }
+                header.HasDataDescriptor = false;
+                return (header, data, null);
             }
 
             var compressedData = reader.ReadBytes((int)header.CompressedLength);
+
+            if (header.HasDataDescriptor)
+            {
+                reader.BaseStream.Position += isExistsDataDescriptorSignature ? 16 : 12;
+            }
+            header.HasDataDescriptor = false;
 
             // Is not deflate
             if (header.Method != CompressionMethod.Deflate)
@@ -537,6 +557,61 @@ namespace RecompressZip
                     return (header, compressedData, null);
                 }
             }
+        }
+
+        /// <summary>
+        /// Find data descriptor from current stream position.
+        /// </summary>
+        /// <param name="reader">A wrapper of <see cref="MemoryStream"/>.</param>
+        /// <returns>Data descriptor tuple.</returns>
+        /// <exception cref="Exception"></exception>
+        private static (bool HasSignature, uint Crc32, uint CompressedLength, uint Length) FindDataDescriptor(BinaryReader reader)
+        {
+            Span<byte> sigPrefix = stackalloc byte[] { (byte)'P', (byte)'K' };
+            var ms = (MemoryStream)reader.BaseStream;
+            var curPos = ms.Position;
+            var data = ms.GetBuffer();
+
+            for (int i = (int)curPos; i + 3 < data.Length; i++)
+            {
+                if (i + sigPrefix.Length >= data.Length)
+                {
+                    break;
+                }
+                int j;
+                for (j = 0; j < sigPrefix.Length; j++)
+                {
+                    if (sigPrefix[j] != data[i + j])
+                    {
+                        break;
+                    }
+                }
+                // Not Found
+                if (j != sigPrefix.Length)
+                {
+                    i += j;
+                    continue;
+                }
+
+                if (data[i + 2] == 0x03 && data[i + 3] == 0x04
+                    || data[i + 2] == 0x01 && data[i + 3] == 0x02)
+                {
+                    ms.Position = i - 12;
+                    var dataDescriptor = (false, reader.ReadUInt32(), reader.ReadUInt32(), reader.ReadUInt32());
+                    ms.Position = curPos;
+                    return dataDescriptor;
+                }
+                else if (data[i + 2] == 0x07 && data[i + 3] == 0x08)
+                {
+                    ms.Position = i + 4;
+                    var dataDescriptor = (true, reader.ReadUInt32(), reader.ReadUInt32(), reader.ReadUInt32());
+                    ms.Position = curPos;
+                    return dataDescriptor;
+                }
+            }
+
+            ms.Position = curPos;
+            throw new InvalidDataException("Data Descriptor not found.");
         }
 
         /// <summary>
