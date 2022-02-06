@@ -1,4 +1,5 @@
 using System;
+using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
@@ -26,6 +27,18 @@ namespace RecompressZip
     static class Program
     {
         /// <summary>
+        /// Chunk type string of PNG, "IDAT".
+        /// </summary>
+        private const string ChunkNameIdat = "IDAT";
+        /// <summary>
+        /// Chunk type string of PNG, "IEND".
+        /// </summary>
+        private const string ChunkNameIend = "IEND";
+        /// <summary>
+        /// Signature of PNG file.
+        /// </summary>
+        private static readonly byte[] _pngSignature;
+        /// <summary>
         /// Logging instance.
         /// </summary>
         private static readonly Logger _logger;
@@ -51,6 +64,7 @@ namespace RecompressZip
             }
             UnsafeNativeMethods.SetDefaultDllDirectories(LoadLibrarySearchFlags.DefaultDirs);
 
+            _pngSignature = new byte[] { 0x89, (byte)'P', (byte)'N', (byte)'G', 0x0d, 0x0a, 0x1a, 0x0a };
             _logger = LogManager.GetCurrentClassLogger();
             _taskFactory = new TaskFactory();
         }
@@ -103,6 +117,10 @@ namespace RecompressZip
                     else if (IsGZipFile(zipFilePath))
                     {
                         RecompressGZip(zipFilePath, zopfliOptions, execOptions);
+                    }
+                    else if (IsPngFile(zipFilePath))
+                    {
+                        RecompressPng(zipFilePath, zopfliOptions, execOptions);
                     }
                     else
                     {
@@ -275,6 +293,49 @@ namespace RecompressZip
                 && data[0] == 0x1f
                 && data[1] == 0x8b
                 && data[2] == 0x08;
+        }
+
+        /// <summary>
+        /// <para>Identify PNG file or not.</para>
+        /// <para>Just determine if the first eight bytes are equals to <see cref="_pngSignature"/>.</para>
+        /// </summary>
+        /// <param name="pngFilePath">Target PNG file path,</param>
+        /// <returns>True if specified file is a gzip compressed file, otherwise false.</returns>
+        private static bool IsPngFile(string zipFilePath)
+        {
+            Span<byte> buffer = stackalloc byte[_pngSignature.Length];
+            using (var fs = new FileStream(zipFilePath, FileMode.Open, FileAccess.Read, FileShare.Read))
+            {
+                if (fs.Read(buffer) < buffer.Length)
+                {
+                    return false;
+                }
+            }
+            return HasPngSignature(buffer);
+        }
+
+        /// <summary>
+        /// Identify the specified binary data has a PNG signature or not.
+        /// </summary>
+        /// <param name="data">Binary data</param>
+        /// <returns>True if the specified binary has a PNG signature, otherwise false.</returns>
+        private static bool HasPngSignature(Span<byte> data)
+        {
+            var pngSignature = _pngSignature;
+            if (data.Length < pngSignature.Length)
+            {
+                return false;
+            }
+
+            for (int i = 0; i < pngSignature.Length; i++)
+            {
+                if (data[i] != pngSignature[i])
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         /// <summary>
@@ -726,6 +787,224 @@ namespace RecompressZip
 
             return decompressedMs;
         }
+
+        /// <summary>
+        /// Recompress PNG file.
+        /// </summary>
+        /// <param name="srcFilePath">Source PNG file path.</param>
+        /// <param name="zopfliOptions">Options for zopfli.</param>
+        /// <param name="execOptions">Options for execution.</param>
+        private static void RecompressPng(string srcFilePath, in ZopfliOptions zopfliOptions, ExecuteOptions execOptions)
+        {
+            var dstFilePath = execOptions.IsDryRun ? null
+                : execOptions.IsOverwrite ? srcFilePath
+                : Path.Combine(
+                    Path.GetDirectoryName(srcFilePath) ?? "",
+                    Path.GetFileNameWithoutExtension(srcFilePath) + ".zopfli" + Path.GetExtension(srcFilePath));
+            RecompressPng(srcFilePath, dstFilePath, zopfliOptions, execOptions);
+        }
+
+        /// <summary>
+        /// Recompress PNG file.
+        /// </summary>
+        /// <param name="srcFilePath">Source PNG file path.</param>
+        /// <param name="dstFilePath">Destination PNG file path.</param>
+        /// <param name="zopfliOptions">Options for zopfli.</param>
+        /// <param name="execOptions">Options for execution.</param>
+        private static void RecompressPng(string srcFilePath, string? dstFilePath, in ZopfliOptions zopfliOptions, ExecuteOptions execOptions)
+        {
+            _logger.Info("Recompress {0} start", srcFilePath);
+
+            var srcFileSize = new FileInfo(srcFilePath).Length;
+            var totalSw = Stopwatch.StartNew();
+
+            using var oms = new MemoryStream((int)srcFileSize);
+
+            using (var ifs = new FileStream(srcFilePath, FileMode.Open, FileAccess.Read, FileShare.Read))
+            {
+                RecompressPng(ifs, oms, zopfliOptions, execOptions);
+            }
+
+            var recompressedData = CreateSpan(oms);
+
+            _logger.Log(
+                recompressedData.Length < srcFileSize ? LogLevel.Info : LogLevel.Warn,
+                "Recompress {0} done: {1:F3} MiB -> {2:F3} MiB (deflated {3:F2}%, {4:F3} seconds)",
+                srcFilePath,
+                ToMiB(srcFileSize),
+                ToMiB(recompressedData.Length),
+                CalcDeflatedRate(srcFileSize, recompressedData.Length) * 100.0,
+                totalSw.ElapsedMilliseconds / 1000.0);
+
+            if (dstFilePath == null)
+            {
+                return;
+            }
+
+            if (recompressedData.Length < srcFileSize || execOptions.IsReplaceForce)
+            {
+                using var ofs = new FileStream(dstFilePath, FileMode.Create, FileAccess.Write, FileShare.Read);
+                ofs.Write(recompressedData);
+            }
+            else if (srcFilePath != dstFilePath)
+            {
+                File.Copy(srcFilePath, dstFilePath, true);
+            }
+        }
+
+        /// <summary>
+        /// Recompress PNG file.
+        /// </summary>
+        /// <param name="srcStream">Source <see cref="Stream"/> of PNG file data.</param>
+        /// <param name="dstStream">Destination <see cref="Stream"/>.</param>
+        /// <param name="zopfliOptions">Options for zopfli.</param>
+        /// <param name="execOptions">Options for execution.</param>
+        private static void RecompressPng(Stream srcStream, Stream dstStream, in ZopfliOptions zopfliOptions, ExecuteOptions execOptions)
+        {
+            using var reader = new BinaryReader(srcStream, Encoding.Default, true);
+            using var writer = new BinaryWriter(dstStream, Encoding.Default, true);
+            RecompressPng(reader, writer, zopfliOptions, execOptions);
+        }
+
+        /// <summary>
+        /// Recompress PNG file.
+        /// </summary>
+        /// <param name="reader">Source <see cref="BinaryReader"/> of PNG file data.</param>
+        /// <param name="writer">Destination <see cref="BinaryWriter"/>.</param>
+        /// <param name="zopfliOptions">Options for zopfli.</param>
+        /// <param name="execOptions">Options for execution.</param>
+        private static void RecompressPng(BinaryReader reader, BinaryWriter writer, in ZopfliOptions zopfliOptions, ExecuteOptions execOptions)
+        {
+            Span<byte> signature = stackalloc byte[8];
+            Span<byte> chunkTypeData = stackalloc byte[4];
+            var buffer = new byte[81920];
+            string? chunkType;
+
+            reader.Read(signature);
+            if (!HasPngSignature(signature))
+            {
+                ThrowInvalidDataException("First eight byte of data stream isn't PNG signature");
+            }
+            writer.Write(signature);
+
+            do
+            {
+                var dataLength = BinaryPrimitives.ReverseEndianness(reader.ReadUInt32());
+
+                if (reader.Read(chunkTypeData) < chunkTypeData.Length)
+                {
+                    ThrowInvalidDataException("Failed to read chunk type.");
+                }
+                chunkType = Encoding.ASCII.GetString(chunkTypeData);
+
+                if (chunkType == ChunkNameIdat)
+                {
+                    // Combine all IDAT data.
+                    var ims = new MemoryStream((int)dataLength);
+                    do
+                    {
+                        var idatData = reader.ReadBytes((int)dataLength);
+                        ims.Write(idatData);
+                        reader.ReadInt32();  // Skip CRC-32
+
+                        dataLength = BinaryPrimitives.ReverseEndianness(reader.ReadUInt32());
+                        if (reader.Read(chunkTypeData) < chunkTypeData.Length)
+                        {
+                            ThrowInvalidDataException("Failed to read chunk type.");
+                        }
+                        chunkType = Encoding.ASCII.GetString(chunkTypeData);
+                    } while (chunkType == ChunkNameIdat);
+
+                    // Recompress combined IDAT data.
+                    ims.Position = 0;
+                    using var recompressedData = RecompressZLibFormatData(ims, zopfliOptions);
+                    if (recompressedData.ByteLength >= (ulong)ims.Length)
+                    {
+                        _logger.Warn("Recompressed data size is large than original: {0} Bytes / {1} Bytes", recompressedData.ByteLength, ims.Length);
+                    }
+
+                    // Write new IDAT chunks.
+                    WriteChunk(writer, ChunkNameIdat, CreateSpan(recompressedData));
+                }
+
+                // Copy current chunk
+                writer.Write(BinaryPrimitives.ReverseEndianness(dataLength));
+                writer.Write(chunkTypeData);
+
+                // Data + CRC-32
+                var remLength = (int)dataLength + 4;
+                buffer = EnsureCapacity(buffer, remLength);
+                if (reader.BaseStream.Read(buffer, 0, remLength) < remLength)
+                {
+                    ThrowInvalidDataException("Failed to read chunk data and CRC.");
+                }
+                writer.BaseStream.Write(buffer, 0, remLength);
+            } while (chunkType != ChunkNameIend);
+        }
+
+        /// <summary>
+        /// Decompress data which compressed with zlib format and recompress the data.
+        /// </summary>
+        /// <param name="ims">Zlib format data.</param>
+        /// <param name="zopfliOptions">Options for zopfli.</param>
+        /// <returns>Unmanaged memory handle of recompressed data.</returns>
+        private static SafeBuffer RecompressZLibFormatData(MemoryStream ims, in ZopfliOptions zopfliOptions)
+        {
+            using var oms = new MemoryStream((int)ims.Length);
+
+            using (var izs = new Ionic.Zlib.ZlibStream(ims, Ionic.Zlib.CompressionMode.Decompress, true))
+            {
+                izs.CopyTo(oms);
+            }
+            return Zopfli.CompressUnmanaged(
+                oms.GetBuffer(),
+                0,
+                (int)oms.Length,
+                zopfliOptions,
+                ZopfliFormat.ZLib);
+        }
+
+        /// <summary>
+        /// Write one PNG chunk data.
+        /// </summary>
+        /// <param name="bw"><see cref="BinaryWriter"/> of data destination.</param>
+        /// <param name="chunkType">Chunk type name.</param>
+        /// <param name="chunkData">Chunk data.</param>
+        private static void WriteChunk(BinaryWriter bw, string chunkType, Span<byte> chunkData)
+        {
+            WriteChunk(bw, Encoding.ASCII.GetBytes(chunkType), chunkData);
+        }
+
+        /// <summary>
+        /// Write one PNG chunk data.
+        /// </summary>
+        /// <param name="bw"><see cref="BinaryWriter"/> of data destination.</param>
+        /// <param name="chunkTypeAscii">Chunk type name byte sequance.</param>
+        /// <param name="chunkData">Chunk data.</param>
+        private static void WriteChunk(BinaryWriter bw, Span<byte> chunkTypeAscii, Span<byte> chunkData)
+        {
+            bw.Write(BinaryPrimitives.ReverseEndianness(chunkData.Length));
+            bw.Write(chunkTypeAscii);
+            bw.Write(chunkData);
+
+            var crc = Crc32Calculator.Update(chunkTypeAscii);
+            crc = Crc32Calculator.Update(chunkData, crc);
+            crc = Crc32Calculator.Finalize(crc);
+            bw.Write(BinaryPrimitives.ReverseEndianness(crc));
+        }
+
+        /// <summary>
+        /// Ensures that the capacity of <paramref name="data"/> is at least the specified value, <paramref name="required"/>.
+        /// </summary>
+        /// <param name="data">Souce <see cref="byte"/> array.</param>
+        /// <param name="required">Required capacity</param>
+        /// <returns><paramref name="data"/> if <c><paramref name="data"/>.Length &gt;= <paramref name="required"/></c>,
+        /// otherwise new allocated <see cref="byte"/> array.</returns>
+        private static byte[] EnsureCapacity(byte[] data, int required)
+        {
+            return data.Length < required ? new byte[required] : data;
+        }
+
 
         /// <summary>
         /// Create <see cref="Span{T}"/> from <see cref="MemoryStream"/>.

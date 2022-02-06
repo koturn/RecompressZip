@@ -28,6 +28,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Ionic.Zlib" Version="1.9.1.5" />
     <PackageReference Include="NLog" Version="4.7.13" />
   </ItemGroup>
 
