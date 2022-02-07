@@ -560,6 +560,7 @@ namespace RecompressZip
 
             var compressedData = reader.ReadBytes((int)header.CompressedLength - cryptHeaderLength);
 
+            // Skip data descriptor.
             if (header.HasDataDescriptor)
             {
                 reader.BaseStream.Position += isExistsDataDescriptorSignature ? 16 : 12;
@@ -583,6 +584,7 @@ namespace RecompressZip
 
             using (var decompressedMs = new MemoryStream((int)header.Length))
             {
+                // Decrypt data if necessary.
                 var decryptedCompressedData = compressedData;
                 if (header.IsEncrypted)
                 {
@@ -596,6 +598,7 @@ namespace RecompressZip
 
                 if (header.Method == CompressionMethod.NoCompression)
                 {
+                    // Copy no deflated data.
                     using (var ims = new MemoryStream(decryptedCompressedData))
                     {
                         ims.CopyTo(decompressedMs);
@@ -604,6 +607,7 @@ namespace RecompressZip
                 }
                 else
                 {
+                    // Deflate compressed data.
                     using (var compressedMs = new MemoryStream(decryptedCompressedData))
                     using (var dds = new DeflateStream(compressedMs, CompressionMode.Decompress))
                     {
@@ -611,6 +615,7 @@ namespace RecompressZip
                     }
                 }
 
+                // Verify CRC-32.
                 if (execOptions.IsVerifyCrc32 || execOptions.Password != null)
                 {
                     VerifyCrc32(CreateSpan(decompressedMs), header.Crc32);
@@ -642,6 +647,7 @@ namespace RecompressZip
                         CalcDeflatedRate(decryptedCompressedData.Length, byteLength) * 100.0,
                         sw.ElapsedMilliseconds / 1000.0);
 
+                    // Encrypt recompressed data if necessary.
                     if (header.IsEncrypted && (recompressedData.ByteLength < (ulong)decryptedCompressedData.Length || execOptions.IsReplaceForce))
                     {
                         var password = execOptions.Password;
@@ -707,6 +713,7 @@ namespace RecompressZip
                 if (data[i + 2] == 0x03 && data[i + 3] == 0x04
                     || data[i + 2] == 0x01 && data[i + 3] == 0x02)
                 {
+                    // Signature of local file header or central directory header is found.
                     ms.Position = i - 12;
                     var dataDescriptor = (false, reader.ReadUInt32(), reader.ReadUInt32(), reader.ReadUInt32());
                     ms.Position = curPos;
@@ -714,6 +721,7 @@ namespace RecompressZip
                 }
                 else if (data[i + 2] == 0x07 && data[i + 3] == 0x08)
                 {
+                    // Signature of data descriptor is found.
                     ms.Position = i + 4;
                     var dataDescriptor = (true, reader.ReadUInt32(), reader.ReadUInt32(), reader.ReadUInt32());
                     ms.Position = curPos;
