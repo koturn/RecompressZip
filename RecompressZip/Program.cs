@@ -487,15 +487,16 @@ namespace RecompressZip
             var centralDirOffset = writer.BaseStream.Position;
             while (signature == ZipSignature.CentralDirectoryFileHeader)
             {
-                var header = CentralDirectoryFileHeader.ReadFrom(reader);
+                var cdHeader = CentralDirectoryFileHeader.ReadFrom(reader);
                 resultEnumerator.MoveNext();
                 var cr = resultEnumerator.Current;
-                header.BitFlag = cr.Header.BitFlag;
-                header.Method = cr.Header.Method;
-                header.CompressedLength = cr.Header.CompressedLength;
-                header.Length = cr.Header.Length;
-                header.Offset = cr.Offset;
-                header.WriteTo(writer);
+                var lfHeader = cr.Header;
+                cdHeader.BitFlag = lfHeader.BitFlag;
+                cdHeader.Method = lfHeader.Method;
+                cdHeader.CompressedLength = lfHeader.CompressedLength;
+                cdHeader.Length = lfHeader.Length;
+                cdHeader.Offset = cr.Offset;
+                cdHeader.WriteTo(writer);
 
                 signature = ZipHeader.ReadSignature(reader);
             }
