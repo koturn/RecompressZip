@@ -602,7 +602,7 @@ namespace RecompressZip
                     var password = execOptions.Password;
                     if (password == null)
                     {
-                        throw new ArgumentNullException(nameof(execOptions.Password));
+                        throw new ArgumentNullException(nameof(execOptions.Password), "Encrypted entry is found but no password is specified.");
                     }
                     decryptedCompressedData = ZipDecryptor.DecryptData(compressedData, password, cryptHeader);
                 }
@@ -622,7 +622,21 @@ namespace RecompressZip
                     using (var compressedMs = new MemoryStream(decryptedCompressedData))
                     using (var dds = new DeflateStream(compressedMs, CompressionMode.Decompress))
                     {
-                        dds.CopyTo(decompressedMs);
+                        try
+                        {
+                            dds.CopyTo(decompressedMs);
+                        }
+                        catch (InvalidDataException e)
+                        {
+                            if (header.IsEncrypted)
+                            {
+                                throw new InvalidDataException("Password may be incorrect.", e);
+                            }
+                            else
+                            {
+                                throw;
+                            }
+                        }
                     }
                 }
 
