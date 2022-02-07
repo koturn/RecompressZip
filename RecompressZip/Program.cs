@@ -717,8 +717,8 @@ namespace RecompressZip
                     continue;
                 }
 
-                if (data[i + 2] == 0x03 && data[i + 3] == 0x04
-                    || data[i + 2] == 0x01 && data[i + 3] == 0x02)
+                var sigPostfix = (ushort)(data[i + 2] | (data[i + 3] << 8));
+                if (sigPostfix == 0x0403 || sigPostfix == 0x0201)
                 {
                     // Signature of local file header or central directory header is found.
                     ms.Position = i - 12;
@@ -726,7 +726,7 @@ namespace RecompressZip
                     ms.Position = curPos;
                     return dataDescriptor;
                 }
-                else if (data[i + 2] == 0x07 && data[i + 3] == 0x08)
+                else if (sigPostfix == 0x0807)
                 {
                     // Signature of data descriptor is found.
                     ms.Position = i + 4;
