@@ -696,7 +696,7 @@ namespace RecompressZip
         /// <exception cref="InvalidDataException">Thrown if data descriptor is not found.</exception>
         private static (bool HasSignature, uint Crc32, uint CompressedLength, uint Length) FindDataDescriptor(BinaryReader reader)
         {
-            ReadOnlySpan<byte> sigPrefix = stackalloc byte[] { (byte)'P', (byte)'K' };
+            ReadOnlySpan<byte> sigPrefix = new byte[] { (byte)'P', (byte)'K' };
             var ms = (MemoryStream)reader.BaseStream;
             var curPos = ms.Position;
             var data = ms.GetBuffer();
