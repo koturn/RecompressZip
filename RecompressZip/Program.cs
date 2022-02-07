@@ -535,44 +535,48 @@ namespace RecompressZip
             var cryptHeaderLength = cryptHeader == null ? 0 : cryptHeader.Length;
 
             var isExistsDataDescriptorSignature = false;
+            var dataDesciptorSize = 0;
             if (header.HasDataDescriptor)
             {
                 (isExistsDataDescriptorSignature, header.Crc32, header.CompressedLength, header.Length) = FindDataDescriptor(reader);
+                dataDesciptorSize = isExistsDataDescriptorSignature ? 16 : 12;
+                header.HasDataDescriptor = false;
             }
 
             // Data part is not exists
             if (header.Length == 0)
             {
                 var compressedLength = header.CompressedLength;
-                _logger.Info(
-                    "[{0}] No data entry: {1} (Method = {2}: {3}){4}",
-                    procIndex,
-                    Encoding.Default.GetString(header.FileName),
-                    (ushort)header.Method,
-                    header.Method,
-                    header.CompressedLength == 0 ? "" : $" (Removed {compressedLength} bytes padding)");
                 if (compressedLength > 0)
                 {
                     reader.BaseStream.Position += compressedLength;
                     header.Method = CompressionMethod.NoCompression;
                     header.CompressedLength = 0;
                 }
-                if (header.HasDataDescriptor)
+                if (dataDesciptorSize > 0)
                 {
-                    reader.BaseStream.Position += isExistsDataDescriptorSignature ? 16 : 12;
+                    reader.BaseStream.Position += dataDesciptorSize;
                 }
-                header.HasDataDescriptor = false;
+
+                _logger.Info(
+                    "[{0}] No data entry: {1} (Method = {2}: {3}){4}{5}",
+                    procIndex,
+                    Encoding.Default.GetString(header.FileName),
+                    (ushort)header.Method,
+                    header.Method,
+                    header.CompressedLength == 0 ? "" : $" (Removed {compressedLength} bytes padding)",
+                    dataDesciptorSize == 0 ? "" : $" (Removed {dataDesciptorSize} bytes data descriptor)");
+
                 return (header, cryptHeader, new byte[0], null);
             }
 
             var compressedData = reader.ReadBytes((int)header.CompressedLength - cryptHeaderLength);
 
             // Skip data descriptor.
-            if (header.HasDataDescriptor)
+            if (dataDesciptorSize > 0)
             {
-                reader.BaseStream.Position += isExistsDataDescriptorSignature ? 16 : 12;
+                reader.BaseStream.Position += dataDesciptorSize;
             }
-            header.HasDataDescriptor = false;
 
             // Is not deflate
             if (header.Method != CompressionMethod.Deflate)
@@ -646,16 +650,17 @@ namespace RecompressZip
                     var byteLength = (int)recompressedData.ByteLength;
                     _logger.Log(
                         byteLength < decryptedCompressedData.Length ? LogLevel.Info : LogLevel.Warn,
-                        "[{0}] Compress {1} done: {2:F3} KiB -> {3:F3} KiB (deflated {4:F2}%, {5:F3} seconds)",
+                        "[{0}] Compress {1} done: {2:F3} KiB -> {3:F3} KiB (deflated {4:F2}%, {5:F3} seconds){6}",
                         procIndex,
                         entryName,
                         ToKiB(decryptedCompressedData.Length),
                         ToKiB(byteLength),
                         CalcDeflatedRate(decryptedCompressedData.Length, byteLength) * 100.0,
-                        sw.ElapsedMilliseconds / 1000.0);
+                        sw.ElapsedMilliseconds / 1000.0,
+                        dataDesciptorSize == 0 ? "" : $" (Removed {dataDesciptorSize} bytes data descriptor)");
 
                     // Encrypt recompressed data if necessary.
-                    if (header.IsEncrypted && (recompressedData.ByteLength < (ulong)decryptedCompressedData.Length || execOptions.IsReplaceForce))
+                    if (header.IsEncrypted && (byteLength < decryptedCompressedData.Length || execOptions.IsReplaceForce))
                     {
                         var password = execOptions.Password;
                         if (password == null)
