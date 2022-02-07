@@ -543,20 +543,26 @@ namespace RecompressZip
             // Data part is not exists
             if (header.Length == 0)
             {
+                var compressedLength = header.CompressedLength;
                 _logger.Info(
-                    "[{0}] No data entry: {1} (Method = {2}: {3})",
+                    "[{0}] No data entry: {1} (Method = {2}: {3}){4}",
                     procIndex,
                     Encoding.Default.GetString(header.FileName),
                     (ushort)header.Method,
-                    header.Method);
-                var compressedLength = header.CompressedLength;
-                var data = header.CompressedLength == 0 ? new byte[0] : reader.ReadBytes((int)header.CompressedLength);
+                    header.Method,
+                    header.CompressedLength == 0 ? "" : $" (Removed {compressedLength} bytes padding)");
+                if (compressedLength > 0)
+                {
+                    reader.BaseStream.Position += compressedLength;
+                    header.Method = CompressionMethod.NoCompression;
+                    header.CompressedLength = 0;
+                }
                 if (header.HasDataDescriptor)
                 {
                     reader.BaseStream.Position += isExistsDataDescriptorSignature ? 16 : 12;
                 }
                 header.HasDataDescriptor = false;
-                return (header, cryptHeader, data, null);
+                return (header, cryptHeader, new byte[0], null);
             }
 
             var compressedData = reader.ReadBytes((int)header.CompressedLength - cryptHeaderLength);
