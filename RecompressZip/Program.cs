@@ -688,7 +688,7 @@ namespace RecompressZip
         /// </summary>
         /// <param name="reader">A wrapper of <see cref="MemoryStream"/>.</param>
         /// <returns>Data descriptor tuple.</returns>
-        /// <exception cref="Exception"></exception>
+        /// <exception cref="InvalidDataException">Thrown if data descriptor is not found.</exception>
         private static (bool HasSignature, uint Crc32, uint CompressedLength, uint Length) FindDataDescriptor(BinaryReader reader)
         {
             ReadOnlySpan<byte> sigPrefix = stackalloc byte[] { (byte)'P', (byte)'K' };
