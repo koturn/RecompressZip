@@ -1022,7 +1022,7 @@ namespace RecompressZip
         {
             using var oms = new MemoryStream((int)ims.Length);
 
-            using (var izs = new Ionic.Zlib.ZlibStream(ims, Ionic.Zlib.CompressionMode.Decompress, true))
+            using (var izs = new ZLibStream(ims, CompressionMode.Decompress, true))
             {
                 izs.CopyTo(oms);
             }
