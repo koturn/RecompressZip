@@ -224,7 +224,7 @@ namespace RecompressZip
 
             Console.WriteLine("- - - Execution Parameters - - -");
             Console.WriteLine($"Number of Threads: {execOptions.NumberOfThreads}");
-            Console.WriteLine($"Password: {execOptions.Password}");
+            Console.WriteLine($"Password: {(execOptions.Password == null ? "Not specified" : "Specified")}");
             Console.WriteLine($"Verify CRC-32: {execOptions.IsVerifyCrc32}");
             Console.WriteLine($"Overwrite: {execOptions.IsOverwrite}");
             Console.WriteLine($"Replace Force: {execOptions.IsReplaceForce}");
@@ -525,6 +525,13 @@ namespace RecompressZip
         {
             var header = LocalFileHeader.ReadFrom(reader);
 
+            if (header.IsEncrypted && execOptions.Password == null)
+            {
+                Console.WriteLine("Encrypted entry is found.");
+                Console.Write("Please enter password: ");
+                execOptions.Password = ReadPassword();
+            }
+
             // Read encrypt header.
             byte[]? cryptHeader = null;
             if (header.IsEncrypted)
@@ -679,7 +686,7 @@ namespace RecompressZip
                         var password = execOptions.Password;
                         if (password == null)
                         {
-                            throw new ArgumentNullException(nameof(execOptions.Password));
+                            throw new ArgumentNullException(nameof(execOptions.Password), "Password must no be null to encrypt data.");
                         }
                         var rdSpan = CreateSpan(recompressedData);
                         ZipEncryptor.EncryptData(rdSpan, rdSpan, password, cryptHeader);
@@ -1075,6 +1082,36 @@ namespace RecompressZip
             return data.Length < required ? new byte[required] : data;
         }
 
+        /// <summary>
+        /// Read password from stdin.
+        /// </summary>
+        /// <returns>Inputted password.</returns>
+        private static string ReadPassword()
+        {
+            var sb = new StringBuilder();
+            while (true)
+            {
+                var cki = Console.ReadKey(true);
+                if (cki.Key == ConsoleKey.Enter)
+                {
+                    Console.WriteLine();
+                    break;
+                }
+                else if (cki.Key == ConsoleKey.Backspace)
+                {
+                    if (sb.Length > 0)
+                    {
+                        Console.Write("\b\0\b");
+                        sb.Length--;
+                    }
+                    continue;
+                }
+                Console.Write('*');
+                sb.Append(cki.KeyChar);
+            }
+
+            return sb.ToString();
+        }
 
         /// <summary>
         /// Create <see cref="Span{T}"/> from <see cref="MemoryStream"/>.
