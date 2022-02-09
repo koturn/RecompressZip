@@ -166,7 +166,7 @@ namespace RecompressZip
             ap.Add('n', "num-thread", OptionType.RequiredArgument,
                 "Number of threads for re-compressing. 0 or negative value means unlimited.",
                 "N", ExecuteOptions.DefaultNumberOfThreads);
-            ap.Add('p', "password", OptionType.RequiredArgument, "Specify password of zip archive");
+            ap.Add('p', "password", OptionType.RequiredArgument, "Specify password of zip archive", "PASSWORD");
             ap.Add('r', "replace-force", "Do the replacement even if the size of the recompressed data is larger than the size of the original data.");
             ap.Add('v', "verbose", "Allow to output to stdout from zopfli.dll.");
             ap.Add('V', "verbose-more", "Allow to output more information to stdout from zopfli.dll.");
