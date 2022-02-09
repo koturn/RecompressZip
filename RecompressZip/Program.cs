@@ -85,6 +85,8 @@ namespace RecompressZip
                 _taskFactory = new TaskFactory(new LimitedConcurrencyLevelTaskScheduler(execOptions.NumberOfThreads));
             }
 
+            Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+
             foreach (var target in targets)
             {
                 var zipFilePath = target;
@@ -550,6 +552,8 @@ namespace RecompressZip
                 header.HasDataDescriptor = false;
             }
 
+            var entryName = (header.IsUtf8NameAndComment ? Encoding.UTF8 : Encoding.GetEncoding((int)UnsafeNativeMethods.GetACP())).GetString(header.FileName);
+
             // Data part is not exists
             if (header.Length == 0)
             {
@@ -568,7 +572,7 @@ namespace RecompressZip
                 _logger.Info(
                     "[{0}] No data entry: {1} (Method = {2}: {3}){4}{5}",
                     procIndex,
-                    Encoding.Default.GetString(header.FileName),
+                    entryName,
                     (ushort)header.Method,
                     header.Method,
                     header.CompressedLength == 0 ? "" : $" (Removed {compressedLength} bytes padding)",
@@ -591,7 +595,7 @@ namespace RecompressZip
                 _logger.Info(
                     "[{0}] Non deflated entry: {1} (Method = {2}: {3})",
                     procIndex,
-                    Encoding.Default.GetString(header.FileName),
+                    entryName,
                     (ushort)header.Method,
                     header.Method);
                 if (header.Method != CompressionMethod.NoCompression || !execOptions.IsForceCompress)
@@ -655,7 +659,6 @@ namespace RecompressZip
 
                 var recompressedData = await _taskFactory.StartNew(() =>
                 {
-                    var entryName = Encoding.Default.GetString(header.FileName);
                     _logger.Info("[{0}] Compress {1} ...", procIndex, entryName);
 
                     var sw = Stopwatch.StartNew();
@@ -1311,6 +1314,13 @@ namespace RecompressZip
             [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
             [SuppressUnmanagedCodeSecurity]
             public static extern bool SetDefaultDllDirectories(LoadLibrarySearchFlags directoryFlags);
+            /// <summary>
+            /// Retrieves the current Windows ANSI code page identifier for the operating system.
+            /// </summary>
+            /// <returns>If the function succeeds, the return value is true.</returns>
+            [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+            [SuppressUnmanagedCodeSecurity]
+            public static extern uint GetACP();
         }
 
         /// <summary>
