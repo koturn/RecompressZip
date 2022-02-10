@@ -47,6 +47,10 @@ namespace RecompressZip
         /// by <see cref="LimitedConcurrencyLevelTaskScheduler"/>.
         /// </summary>
         private static TaskFactory _taskFactory;
+        /// <summary>
+        /// Cache of system encoding.
+        /// </summary>
+        private static Encoding? _systemEncoding;
 
 
         /// <summary>
@@ -552,7 +556,7 @@ namespace RecompressZip
                 header.HasDataDescriptor = false;
             }
 
-            var entryName = (header.IsUtf8NameAndComment ? Encoding.UTF8 : Encoding.GetEncoding((int)UnsafeNativeMethods.GetACP())).GetString(header.FileName);
+            var entryName = (header.IsUtf8NameAndComment ? Encoding.UTF8 : GetSystemEncoding()).GetString(header.FileName);
 
             // Data part is not exists
             if (header.Length == 0)
@@ -753,6 +757,15 @@ namespace RecompressZip
 
             ms.Position = curPos;
             throw new InvalidDataException("Data Descriptor not found.");
+        }
+
+        /// <summary>
+        /// Get system encoding.
+        /// </summary>
+        /// <returns>System encoding.</returns>
+        private static Encoding GetSystemEncoding()
+        {
+            return _systemEncoding ??= Encoding.GetEncoding((int)UnsafeNativeMethods.GetACP());
         }
 
         /// <summary>
