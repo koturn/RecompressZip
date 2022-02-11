@@ -334,7 +334,7 @@ namespace RecompressZip
         /// <para>Identify PNG file or not.</para>
         /// <para>Just determine if the first eight bytes are equals to <see cref="_pngSignature"/>.</para>
         /// </summary>
-        /// <param name="pngFilePath">Target PNG file path,</param>
+        /// <param name="zipFilePath">Target PNG file path,</param>
         /// <returns>True if specified file is a gzip compressed file, otherwise false.</returns>
         private static bool IsPngFile(string zipFilePath)
         {

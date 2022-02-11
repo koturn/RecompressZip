@@ -94,7 +94,7 @@ namespace RecompressZip.Zip
             set => BitFlag = value ? (BitFlag | GeneralPurpsoseBitFlags.HasDataDescriptor) : (BitFlag & ~GeneralPurpsoseBitFlags.HasDataDescriptor);
         }
         /// <summary>
-        /// Indicates <see cref="Name"/> and <see cref="Comment"/> is UTF-8 string or not.
+        /// Indicates <see cref="FileName"/> is UTF-8 string bte sequence or not.
         /// </summary>
         public bool IsUtf8NameAndComment
         {

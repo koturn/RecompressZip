@@ -69,7 +69,7 @@ namespace RecompressZip.Zip
         }
 
         /// <summary>
-        /// Initialize <see cref="_key"/> with <paramref name="password"/>.
+        /// Initialize <see cref="_key"/> with <paramref name="passwordBytes"/>.
         /// </summary>
         /// <param name="passwordBytes">Byte sequence of password of zip archive.</param>
         protected void InitializeKeysWithPassword(ReadOnlySpan<byte> passwordBytes)

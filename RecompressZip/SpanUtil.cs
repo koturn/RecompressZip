@@ -6,6 +6,9 @@ using System.Runtime.InteropServices;
 
 namespace RecompressZip
 {
+    /// <summary>
+    /// Utility class which provides methods about <see cref="Span{T}"/>.
+    /// </summary>
     public static class SpanUtil
     {
         /// <summary>

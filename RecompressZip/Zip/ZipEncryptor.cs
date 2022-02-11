@@ -28,7 +28,6 @@ namespace RecompressZip.Zip
         /// and create new crypt header.
         /// </summary>
         /// <param name="passwordBytes">Byte sequence of password of zip archive.</param>
-        /// <param name="enc">Encoding of <paramref name="password"/>.</param>
         /// <param name="crc32">CRC-32 value of zip entry.</param>
         public ZipEncryptor(ReadOnlySpan<byte> passwordBytes, uint crc32)
         {
@@ -189,7 +188,7 @@ namespace RecompressZip.Zip
         }
 
         /// <summary>
-        /// Encrypt data with <paramref name="password"/> and <paramref name="crc32"/>.
+        /// Encrypt data with <paramref name="password"/> and <paramref name="cryptHeader"/>.
         /// </summary>
         /// <param name="data">Compressed zip entry data.</param>
         /// <param name="password">Password of zip archive.</param>
@@ -203,7 +202,7 @@ namespace RecompressZip.Zip
         }
 
         /// <summary>
-        /// Encrypt data with <paramref name="passwordBytes"/> and <paramref name="crc32"/>.
+        /// Encrypt data with <paramref name="passwordBytes"/> and <paramref name="cryptHeader"/>.
         /// </summary>
         /// <param name="data">Compressed zip entry data.</param>
         /// <param name="passwordBytes">Byte sequence of password of zip archive.</param>
@@ -216,7 +215,7 @@ namespace RecompressZip.Zip
         }
 
         /// <summary>
-        /// Encrypt data with <paramref name="password"/> and <paramref name="crc32"/>.
+        /// Encrypt data with <paramref name="password"/> and <paramref name="cryptHeader"/>.
         /// </summary>
         /// <param name="srcData">Compressed zip entry data.</param>
         /// <param name="dstData">Destination of encrypted data.</param>
@@ -229,7 +228,7 @@ namespace RecompressZip.Zip
         }
 
         /// <summary>
-        /// Encrypt data with <paramref name="passwordBytes"/> and <paramref name="crc32"/>.
+        /// Encrypt data with <paramref name="passwordBytes"/> and <paramref name="cryptHeader"/>.
         /// </summary>
         /// <param name="srcData">Compressed zip entry data.</param>
         /// <param name="dstData">Destination of encrypted data.</param>

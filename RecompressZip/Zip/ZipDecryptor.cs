@@ -86,7 +86,7 @@ namespace RecompressZip.Zip
 
 
         /// <summary>
-        /// Decrypt data with <paramref name="password"/> and <paramref name="crc32"/>.
+        /// Decrypt data with <paramref name="password"/> and <paramref name="cryptHeader"/>.
         /// </summary>
         /// <param name="data">Encrypted compressed zip entry data.</param>
         /// <param name="password">Password of zip archive.</param>
@@ -100,7 +100,7 @@ namespace RecompressZip.Zip
         }
 
         /// <summary>
-        /// Decrypt data with <paramref name="passwordBytes"/> and <paramref name="crc32"/>.
+        /// Decrypt data with <paramref name="passwordBytes"/> and <paramref name="cryptHeader"/>.
         /// </summary>
         /// <param name="data">Encrypted compressed zip entry data.</param>
         /// <param name="passwordBytes">Byte sequence of password of zip archive.</param>
@@ -113,7 +113,7 @@ namespace RecompressZip.Zip
         }
 
         /// <summary>
-        /// Decrypt data with <paramref name="password"/> and <paramref name="crc32"/>.
+        /// Decrypt data with <paramref name="password"/> and <paramref name="cryptHeader"/>.
         /// </summary>
         /// <param name="srcData">Encrypted compressed zip entry data.</param>
         /// <param name="dstData">Destination of decrypted data.</param>
@@ -127,7 +127,7 @@ namespace RecompressZip.Zip
         }
 
         /// <summary>
-        /// Decrypt data with <paramref name="passwordBytes"/> and <paramref name="crc32"/>.
+        /// Decrypt data with <paramref name="passwordBytes"/> and <paramref name="cryptHeader"/>.
         /// </summary>
         /// <param name="srcData">Encrypted compressed zip entry data.</param>
         /// <param name="dstData">Destination of decrypted data.</param>
