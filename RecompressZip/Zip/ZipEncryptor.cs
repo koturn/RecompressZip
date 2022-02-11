@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics.Contracts;
 using System.Text;
 
 
@@ -132,6 +133,7 @@ namespace RecompressZip.Zip
         /// <param name="crc32">CRC-32 value of zip entry.</param>
         /// <param name="outputCryptHeader">Destination of output crypt header.</param>
         /// <returns>Encrypted data.</returns>
+        [Pure]
         public static byte[] EncryptData(ReadOnlySpan<byte> data, string password, Encoding enc, uint crc32, Span<byte> outputCryptHeader)
         {
             var ze = new ZipEncryptor(password, enc, crc32);
@@ -147,6 +149,7 @@ namespace RecompressZip.Zip
         /// <param name="crc32">CRC-32 value of zip entry.</param>
         /// <param name="outputCryptHeader">Destination of output crypt header.</param>
         /// <returns>Encrypted data.</returns>
+        [Pure]
         public static byte[] EncryptData(ReadOnlySpan<byte> data, ReadOnlySpan<byte> passwordBytes, uint crc32, Span<byte> outputCryptHeader)
         {
             var ze = new ZipEncryptor(passwordBytes, crc32);
@@ -193,6 +196,7 @@ namespace RecompressZip.Zip
         /// <param name="enc">Encoding of <paramref name="password"/>.</param>
         /// <param name="cryptHeader">Crypt header.</param>
         /// <returns>Encrypted data.</returns>
+        [Pure]
         public static byte[] EncryptData(ReadOnlySpan<byte> data, string password, Encoding enc, ReadOnlySpan<byte> cryptHeader)
         {
             return new ZipEncryptor(password, enc, cryptHeader).Encrypt(data);
@@ -205,6 +209,7 @@ namespace RecompressZip.Zip
         /// <param name="passwordBytes">Byte sequence of password of zip archive.</param>
         /// <param name="cryptHeader">Crypt header.</param>
         /// <returns>Encrypted data.</returns>
+        [Pure]
         public static byte[] EncryptData(ReadOnlySpan<byte> data, ReadOnlySpan<byte> passwordBytes, ReadOnlySpan<byte> cryptHeader)
         {
             return new ZipEncryptor(passwordBytes, cryptHeader).Encrypt(data);

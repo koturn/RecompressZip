@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics.Contracts;
 
 
 namespace RecompressZip
@@ -95,6 +96,7 @@ namespace RecompressZip
         /// Clone this instance.
         /// </summary>
         /// <returns>Cloned instance.</returns>
+        [Pure]
         public object Clone()
         {
             return new ExecuteOptions(

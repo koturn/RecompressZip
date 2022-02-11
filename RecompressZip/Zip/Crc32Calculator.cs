@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics.Contracts;
 
 
 namespace RecompressZip.Zip
@@ -109,6 +110,7 @@ namespace RecompressZip.Zip
         /// </summary>
         /// <param name="crc">Intermidiate CRC-32 value</param>
         /// <returns>CRC-32 value.</returns>
+        [Pure]
         public static uint Finalize(uint crc)
         {
             return ~crc;

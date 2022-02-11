@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics.Contracts;
 using System.Text;
 
 
@@ -92,6 +93,7 @@ namespace RecompressZip.Zip
         /// <param name="enc">Encoding of <paramref name="password"/>.</param>
         /// <param name="cryptHeader">Crypt header.</param>
         /// <returns>Decrypted data.</returns>
+        [Pure]
         public static byte[] DecryptData(ReadOnlySpan<byte> data, string password, Encoding enc, ReadOnlySpan<byte> cryptHeader)
         {
             return new ZipDecryptor(password, enc, cryptHeader).Decrypt(data);
@@ -104,6 +106,7 @@ namespace RecompressZip.Zip
         /// <param name="passwordBytes">Byte sequence of password of zip archive.</param>
         /// <param name="cryptHeader">Crypt header.</param>
         /// <returns>Decrypted data.</returns>
+        [Pure]
         public static byte[] DecryptData(ReadOnlySpan<byte> data, ReadOnlySpan<byte> passwordBytes, ReadOnlySpan<byte> cryptHeader)
         {
             return new ZipDecryptor(passwordBytes, cryptHeader).Decrypt(data);

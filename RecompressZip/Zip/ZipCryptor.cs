@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics.Contracts;
 using System.Text;
 using System.Runtime.CompilerServices;
 
@@ -95,6 +96,7 @@ namespace RecompressZip.Zip
         /// <summary>
         /// Get one byte for xor operation from <see cref="_key"/>.
         /// </summary>
+        [Pure]
         protected byte GetDecryptByte()
         {
             var k = (ushort)(_key[2] | 0x0002);

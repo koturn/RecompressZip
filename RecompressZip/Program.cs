@@ -3,6 +3,7 @@ using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Diagnostics.Contracts;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
@@ -285,6 +286,7 @@ namespace RecompressZip
         /// </summary>
         /// <param name="data">Binary data</param>
         /// <returns>True if the specified binary has a zip signature, otherwise false.</returns>
+        [Pure]
         private static bool HasZipSignature(ReadOnlySpan<byte> data)
         {
             return data.Length >= 4
@@ -319,6 +321,7 @@ namespace RecompressZip
         /// </summary>
         /// <param name="data">Binary data</param>
         /// <returns>True if the specified binary has a gzip signature, otherwise false.</returns>
+        [Pure]
         private static bool HasGZipSignature(ReadOnlySpan<byte> data)
         {
             return data.Length >= 3
@@ -351,6 +354,7 @@ namespace RecompressZip
         /// </summary>
         /// <param name="data">Binary data</param>
         /// <returns>True if the specified binary has a PNG signature, otherwise false.</returns>
+        [Pure]
         private static bool HasPngSignature(ReadOnlySpan<byte> data)
         {
             var pngSignature = _pngSignature;
@@ -1114,6 +1118,7 @@ namespace RecompressZip
         /// <param name="required">Required capacity</param>
         /// <returns><paramref name="data"/> if <c><paramref name="data"/>.Length &gt;= <paramref name="required"/></c>,
         /// otherwise new allocated <see cref="byte"/> array.</returns>
+        [Pure]
         private static byte[] EnsureCapacity(byte[] data, int required)
         {
             return data.Length < required ? new byte[required] : data;
@@ -1159,6 +1164,7 @@ namespace RecompressZip
         /// </summary>
         /// <param name="cki">Inputted key information.</param>
         /// <returns>True if inputted key is a character, otherwise false.</returns>
+        [Pure]
         private static bool IsCharKey(ConsoleKeyInfo cki)
         {
             switch (cki.Key)
@@ -1268,6 +1274,7 @@ namespace RecompressZip
         /// </summary>
         /// <param name="byteSize">A number in bytes.</param>
         /// <returns>A number in KiB.</returns>
+        [Pure]
         private static double ToKiB(long byteSize)
         {
             return byteSize / 1024.0;
@@ -1278,6 +1285,7 @@ namespace RecompressZip
         /// </summary>
         /// <param name="byteSize">A number in bytes.</param>
         /// <returns>A number in MiB.</returns>
+        [Pure]
         private static double ToMiB(long byteSize)
         {
             return byteSize / 1024.0 / 1024.0;
@@ -1289,6 +1297,7 @@ namespace RecompressZip
         /// <param name="originalSize">Original size.</param>
         /// <param name="compressedSize">Compressed size.</param>
         /// <returns>Deflated rete.</returns>
+        [Pure]
         private static double CalcDeflatedRate(long originalSize, long compressedSize)
         {
             return 1.0 - (double)compressedSize / originalSize;
