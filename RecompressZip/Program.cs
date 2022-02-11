@@ -500,7 +500,7 @@ namespace RecompressZip
                 {
                     using (recompressedData)
                     {
-                        writer.Write(CreateSpan(recompressedData));
+                        writer.Write(SpanUtil.CreateSpan(recompressedData));
                     }
                 }
                 else if (compressedData != null)
@@ -679,7 +679,7 @@ namespace RecompressZip
                 // Verify CRC-32.
                 if (execOptions.IsVerifyCrc32 || execOptions.Password != null)
                 {
-                    VerifyCrc32(CreateSpan(decompressedMs), header.Crc32);
+                    VerifyCrc32(SpanUtil.CreateSpan(decompressedMs), header.Crc32);
                 }
 
                 var recompressedData = await _taskFactory.StartNew(() =>
@@ -716,7 +716,7 @@ namespace RecompressZip
                         {
                             throw new ArgumentNullException(nameof(execOptions.Password), "Password must no be null to encrypt data.");
                         }
-                        var rdSpan = CreateSpan(recompressedData);
+                        var rdSpan = SpanUtil.CreateSpan(recompressedData);
                         ZipEncryptor.EncryptData(rdSpan, rdSpan, password, _passwordEncoding, cryptHeader);
                     }
 
@@ -844,7 +844,7 @@ namespace RecompressZip
             if ((long)recompressedData.ByteLength < srcFileSize || execOptions.IsReplaceForce)
             {
                 using var ofs = new FileStream(dstFilePath, FileMode.Create, FileAccess.Write, FileShare.Read);
-                ofs.Write(CreateSpan(recompressedData));
+                ofs.Write(SpanUtil.CreateSpan(recompressedData));
             }
             else if (srcFilePath != dstFilePath)
             {
@@ -939,7 +939,7 @@ namespace RecompressZip
                 RecompressPng(ifs, oms, zopfliOptions, execOptions);
             }
 
-            var recompressedData = CreateSpan(oms);
+            var recompressedData = SpanUtil.CreateSpan(oms);
 
             _logger.Log(
                 recompressedData.Length < srcFileSize ? LogLevel.Info : LogLevel.Warn,
@@ -1038,7 +1038,7 @@ namespace RecompressZip
                     }
 
                     // Write new IDAT chunks.
-                    WriteChunk(writer, ChunkNameIdat, CreateSpan(recompressedData));
+                    WriteChunk(writer, ChunkNameIdat, SpanUtil.CreateSpan(recompressedData));
                 }
 
                 // Copy current chunk
@@ -1246,26 +1246,6 @@ namespace RecompressZip
                 default:
                     return true;
             }
-        }
-
-        /// <summary>
-        /// Create <see cref="Span{T}"/> from <see cref="MemoryStream"/>.
-        /// </summary>
-        /// <param name="ms">An instance of <see cref="MemoryStream"/>.</param>
-        /// <returns><see cref="Span{T}"/> of <paramref name="ms"/>.</returns>
-        private static Span<byte> CreateSpan(MemoryStream ms)
-        {
-            return ms.GetBuffer().AsSpan(0, (int)ms.Length);
-        }
-
-        /// <summary>
-        /// Create <see cref="Span{T}"/> from <see cref="SafeBuffer"/>.
-        /// </summary>
-        /// <param name="sb">An instance of <see cref="SafeBuffer"/>.</param>
-        /// <returns><see cref="Span{T}"/> of <paramref name="sb"/>.</returns>
-        private static unsafe Span<byte> CreateSpan(SafeBuffer sb)
-        {
-            return new Span<byte>((void*)sb.DangerousGetHandle(), (int)sb.ByteLength);
         }
 
         /// <summary>
