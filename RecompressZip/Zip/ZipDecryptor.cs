@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Text;
 
 
 namespace RecompressZip.Zip
@@ -6,15 +7,28 @@ namespace RecompressZip.Zip
     /// <summary>
     /// Decryptor of ZipCrypto.
     /// </summary>
-    public class ZipDecryptor : ZipCryptor
+    public sealed class ZipDecryptor : ZipCryptor
     {
         /// <summary>
-        /// Initialize crypt key with <paramref name="password"/> and <paramref name="crc32"/>
-        /// and create new crypt header.
+        /// Initialize crypt key with <paramref name="password"/> and <paramref name="cryptHeader"/>.
         /// </summary>
-        public ZipDecryptor(string password, ReadOnlySpan<byte> cryptHeader)
+        /// <param name="password">Password of zip archive.</param>
+        /// <param name="enc">Encoding of <paramref name="password"/>.</param>
+        /// <param name="cryptHeader">Crypt header.</param>
+        public ZipDecryptor(string password, Encoding enc, ReadOnlySpan<byte> cryptHeader)
         {
-            InitializeKeysWithPassword(password);
+            InitializeKeysWithPassword(password, enc);
+            InitializeCryptHeader(cryptHeader);
+        }
+
+        /// <summary>
+        /// Initialize crypt key with <paramref name="passwordBytes"/> and <paramref name="cryptHeader"/>.
+        /// </summary>
+        /// <param name="passwordBytes">Byte sequence of password of zip archive.</param>
+        /// <param name="cryptHeader">Crypt header.</param>
+        public ZipDecryptor(ReadOnlySpan<byte> passwordBytes, ReadOnlySpan<byte> cryptHeader)
+        {
+            InitializeKeysWithPassword(passwordBytes);
             InitializeCryptHeader(cryptHeader);
         }
 
@@ -71,28 +85,55 @@ namespace RecompressZip.Zip
 
 
         /// <summary>
-        /// Decrypt data with specified password and crypt header.
+        /// Decrypt data with <paramref name="password"/> and <paramref name="crc32"/>.
         /// </summary>
         /// <param name="data">Encrypted compressed zip entry data.</param>
         /// <param name="password">Password of zip archive.</param>
+        /// <param name="enc">Encoding of <paramref name="password"/>.</param>
         /// <param name="cryptHeader">Crypt header.</param>
         /// <returns>Decrypted data.</returns>
-        public static byte[] DecryptData(ReadOnlySpan<byte> data, string password, ReadOnlySpan<byte> cryptHeader)
+        public static byte[] DecryptData(ReadOnlySpan<byte> data, string password, Encoding enc, ReadOnlySpan<byte> cryptHeader)
         {
-            return new ZipDecryptor(password, cryptHeader).Decrypt(data);
+            return new ZipDecryptor(password, enc, cryptHeader).Decrypt(data);
         }
 
         /// <summary>
-        /// Decrypt data with specified password and crypt header.
+        /// Decrypt data with <paramref name="passwordBytes"/> and <paramref name="crc32"/>.
+        /// </summary>
+        /// <param name="data">Encrypted compressed zip entry data.</param>
+        /// <param name="passwordBytes">Byte sequence of password of zip archive.</param>
+        /// <param name="cryptHeader">Crypt header.</param>
+        /// <returns>Decrypted data.</returns>
+        public static byte[] DecryptData(ReadOnlySpan<byte> data, ReadOnlySpan<byte> passwordBytes, ReadOnlySpan<byte> cryptHeader)
+        {
+            return new ZipDecryptor(passwordBytes, cryptHeader).Decrypt(data);
+        }
+
+        /// <summary>
+        /// Decrypt data with <paramref name="password"/> and <paramref name="crc32"/>.
         /// </summary>
         /// <param name="srcData">Encrypted compressed zip entry data.</param>
         /// <param name="dstData">Destination of decrypted data.</param>
         /// <param name="password">Password of zip archive.</param>
+        /// <param name="enc">Encoding of <paramref name="password"/>.</param>
         /// <param name="cryptHeader">Crypt header.</param>
         /// <returns>Decrypted data.</returns>
-        public static void DecryptData(ReadOnlySpan<byte> srcData, Span<byte> dstData, string password, ReadOnlySpan<byte> cryptHeader)
+        public static void DecryptData(ReadOnlySpan<byte> srcData, Span<byte> dstData, string password, Encoding enc, ReadOnlySpan<byte> cryptHeader)
         {
-            new ZipDecryptor(password, cryptHeader).Decrypt(srcData, dstData);
+            new ZipDecryptor(password, enc, cryptHeader).Decrypt(srcData, dstData);
+        }
+
+        /// <summary>
+        /// Decrypt data with <paramref name="passwordBytes"/> and <paramref name="crc32"/>.
+        /// </summary>
+        /// <param name="srcData">Encrypted compressed zip entry data.</param>
+        /// <param name="dstData">Destination of decrypted data.</param>
+        /// <param name="passwordBytes">Byte sequence of password of zip archive.</param>
+        /// <param name="cryptHeader">Crypt header.</param>
+        /// <returns>Decrypted data.</returns>
+        public static void DecryptData(ReadOnlySpan<byte> srcData, Span<byte> dstData, ReadOnlySpan<byte> passwordBytes, ReadOnlySpan<byte> cryptHeader)
+        {
+            new ZipDecryptor(passwordBytes, cryptHeader).Decrypt(srcData, dstData);
         }
     }
 }

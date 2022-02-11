@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System;
+using System.Text;
 using System.Runtime.CompilerServices;
 
 
@@ -60,9 +61,19 @@ namespace RecompressZip.Zip
         /// Initialize <see cref="_key"/> with <paramref name="password"/>.
         /// </summary>
         /// <param name="password">Zip password.</param>
-        protected void InitializeKeysWithPassword(string password)
+        /// <param name="enc">Encoding of <paramref name="password"/>.</param>
+        protected void InitializeKeysWithPassword(string password, Encoding enc)
         {
-            foreach (var b in Encoding.ASCII.GetBytes(password))
+            InitializeKeysWithPassword(enc.GetBytes(password));
+        }
+
+        /// <summary>
+        /// Initialize <see cref="_key"/> with <paramref name="password"/>.
+        /// </summary>
+        /// <param name="passwordBytes">Byte sequence of password of zip archive.</param>
+        protected void InitializeKeysWithPassword(ReadOnlySpan<byte> passwordBytes)
+        {
+            foreach (var b in passwordBytes)
             {
                 UpdateKeys(b);
             }

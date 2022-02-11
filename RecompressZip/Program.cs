@@ -51,6 +51,10 @@ namespace RecompressZip
         /// Cache of system encoding.
         /// </summary>
         private static Encoding? _systemEncoding;
+        /// <summary>
+        /// Cache of password encoding.
+        /// </summary>
+        private static Encoding _passwordEncoding;
 
 
         /// <summary>
@@ -71,6 +75,7 @@ namespace RecompressZip
             _pngSignature = new byte[] { 0x89, (byte)'P', (byte)'N', (byte)'G', 0x0d, 0x0a, 0x1a, 0x0a };
             _logger = LogManager.GetCurrentClassLogger();
             _taskFactory = new TaskFactory();
+            _passwordEncoding = Encoding.Default;
         }
 
 
@@ -84,12 +89,16 @@ namespace RecompressZip
             var (targets, zopfliOptions, execOptions) = ParseCommadLineArguments(args);
             ShowParameters(zopfliOptions, execOptions);
 
+            Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+            if (execOptions.PasswordEncodingName != null)
+            {
+                _passwordEncoding = Encoding.GetEncoding(execOptions.PasswordEncodingName);
+            }
+
             if (execOptions.NumberOfThreads > 0)
             {
                 _taskFactory = new TaskFactory(new LimitedConcurrencyLevelTaskScheduler(execOptions.NumberOfThreads));
             }
-
-            Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 
             foreach (var target in targets)
             {
@@ -178,6 +187,7 @@ namespace RecompressZip
             ap.Add('V', "verbose-more", "Allow to output more information to stdout from zopfli.dll.");
             ap.Add("no-block-split", "Don't splits the data in multiple deflate blocks with optimal choice for the block boundaries.");
             ap.Add("no-overwrite", "Don't overwrite PNG files and create images to new zip archive file or directory.");
+            ap.Add("password-encoding", OptionType.RequiredArgument, "Encoding of password.", "ENCODING");
             ap.Add("verify-crc32", "Verify CRC-32 value of each zip entry.");
 
             ap.Parse(args);
@@ -207,6 +217,7 @@ namespace RecompressZip
                 new ExecuteOptions(
                     ap.GetValue<int>('n'),
                     ap.GetValue('p'),
+                    ap.GetValue("password-encoding"),
                     ap.GetValue<bool>('f'),
                     ap.GetValue<bool>("verify-crc32"),
                     !ap.GetValue<bool>("no-overwrite"),
@@ -619,7 +630,7 @@ namespace RecompressZip
                     {
                         throw new ArgumentNullException(nameof(execOptions.Password), "Encrypted entry is found but no password is specified.");
                     }
-                    decryptedCompressedData = ZipDecryptor.DecryptData(compressedData, password, cryptHeader);
+                    decryptedCompressedData = ZipDecryptor.DecryptData(compressedData, password, _passwordEncoding, cryptHeader);
                 }
 
                 if (header.Method == CompressionMethod.NoCompression)
@@ -696,7 +707,7 @@ namespace RecompressZip
                             throw new ArgumentNullException(nameof(execOptions.Password), "Password must no be null to encrypt data.");
                         }
                         var rdSpan = CreateSpan(recompressedData);
-                        ZipEncryptor.EncryptData(rdSpan, rdSpan, password, cryptHeader);
+                        ZipEncryptor.EncryptData(rdSpan, rdSpan, password, _passwordEncoding, cryptHeader);
                     }
 
                     return recompressedData;

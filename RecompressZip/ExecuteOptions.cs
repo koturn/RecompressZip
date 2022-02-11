@@ -22,6 +22,10 @@ namespace RecompressZip
         /// </summary>
         public string? Password { get; set; }
         /// <summary>
+        /// Encoding name of <see cref="Password"/>.
+        /// </summary>
+        public string? PasswordEncodingName { get; set; }
+        /// <summary>
         /// Force compress non compressed data.
         /// </summary>
         public bool IsForceCompress { get; set; }
@@ -54,6 +58,7 @@ namespace RecompressZip
         /// </summary>
         /// <param name="numberOfThreads">Number of threads for re-compressing. -1 means unlimited.</param>
         /// <param name="password">Password of zip archive.</param>
+        /// <param name="passwordEncodingName">Encoding name of <paramref name="password"/>.</param>
         /// <param name="isForceCompress">Force compress non compressed data.</param>
         /// <param name="isVerifyCrc32">Verify CRC-32 value of zip entry or not.</param>
         /// <param name="isOverwrite">Overwrite original files.</param>
@@ -62,6 +67,7 @@ namespace RecompressZip
         public ExecuteOptions(
             int numberOfThreads = DefaultNumberOfThreads,
             string? password = null,
+            string? passwordEncodingName = null,
             bool isForceCompress = false,
             bool isVerifyCrc32 = false,
             bool isOverwrite = false,
@@ -70,6 +76,7 @@ namespace RecompressZip
         {
             NumberOfThreads = numberOfThreads;
             Password = password;
+            PasswordEncodingName = passwordEncodingName;
             IsForceCompress = isForceCompress;
             IsVerifyCrc32 = isVerifyCrc32;
             IsOverwrite = isOverwrite;
@@ -86,6 +93,7 @@ namespace RecompressZip
             return new ExecuteOptions(
                 NumberOfThreads,
                 Password,
+                PasswordEncodingName,
                 IsForceCompress,
                 IsVerifyCrc32,
                 IsOverwrite,
