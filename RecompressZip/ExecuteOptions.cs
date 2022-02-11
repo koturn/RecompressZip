@@ -18,6 +18,10 @@ namespace RecompressZip
         /// </summary>
         public int NumberOfThreads { get; set; }
         /// <summary>
+        /// Encoding name of non UTF-8 name and comment of zip entries.
+        /// </summary>
+        public string? EncodingName { get; set; }
+        /// <summary>
         /// Password of zip archive.
         /// </summary>
         public string? Password { get; set; }
@@ -57,6 +61,7 @@ namespace RecompressZip
         /// Initialize all members.
         /// </summary>
         /// <param name="numberOfThreads">Number of threads for re-compressing. -1 means unlimited.</param>
+        /// <param name="encodingName">Encoding name of non UTF-8 name and comment of zip entries.</param>
         /// <param name="password">Password of zip archive.</param>
         /// <param name="passwordEncodingName">Encoding name of <paramref name="password"/>.</param>
         /// <param name="isForceCompress">Force compress non compressed data.</param>
@@ -66,6 +71,7 @@ namespace RecompressZip
         /// <param name="isDryRun">Don't save any files, just see the console output.</param>
         public ExecuteOptions(
             int numberOfThreads = DefaultNumberOfThreads,
+            string? encodingName = null,
             string? password = null,
             string? passwordEncodingName = null,
             bool isForceCompress = false,
@@ -75,6 +81,7 @@ namespace RecompressZip
             bool isDryRun = false)
         {
             NumberOfThreads = numberOfThreads;
+            EncodingName = encodingName;
             Password = password;
             PasswordEncodingName = passwordEncodingName;
             IsForceCompress = isForceCompress;
@@ -92,6 +99,7 @@ namespace RecompressZip
         {
             return new ExecuteOptions(
                 NumberOfThreads,
+                EncodingName,
                 Password,
                 PasswordEncodingName,
                 IsForceCompress,

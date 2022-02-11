@@ -48,6 +48,10 @@ namespace RecompressZip
         /// </summary>
         private static TaskFactory _taskFactory;
         /// <summary>
+        /// Non UTF-8 name and comment of zip entries.
+        /// </summary>
+        private static Encoding? _encoding;
+        /// <summary>
         /// Cache of system encoding.
         /// </summary>
         private static Encoding? _systemEncoding;
@@ -90,6 +94,10 @@ namespace RecompressZip
             ShowParameters(zopfliOptions, execOptions);
 
             Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+            if (execOptions.EncodingName != null)
+            {
+                _encoding = Encoding.GetEncoding(execOptions.EncodingName);
+            }
             if (execOptions.PasswordEncodingName != null)
             {
                 _passwordEncoding = Encoding.GetEncoding(execOptions.PasswordEncodingName);
@@ -172,6 +180,7 @@ namespace RecompressZip
                 "Maximum amount of blocks to split into (0 for unlimited, but this can give extreme results that hurt compression on some files).\n"
                 + indent2 + "Default: 15", "NUM", zo.BlockSplittingMax);
             ap.Add('d', "dry-run", "Don't save any files, just see the console output.");
+            ap.Add('e', "encoding", OptionType.RequiredArgument, "Encoding of non UTF-8 name and comment of zip entries.", "ENCODING");
             ap.Add('f', "compress-force", "Compress no-compressed data.");
             ap.AddHelp();
             ap.Add('i', "num-iteration", OptionType.RequiredArgument,
@@ -216,6 +225,7 @@ namespace RecompressZip
                 zo,
                 new ExecuteOptions(
                     ap.GetValue<int>('n'),
+                    ap.GetValue('e'),
                     ap.GetValue('p'),
                     ap.GetValue("password-encoding"),
                     ap.GetValue<bool>('f'),
@@ -567,7 +577,7 @@ namespace RecompressZip
                 header.HasDataDescriptor = false;
             }
 
-            var entryName = (header.IsUtf8NameAndComment ? Encoding.UTF8 : GetSystemEncoding()).GetString(header.FileName);
+            var entryName = (header.IsUtf8NameAndComment ? Encoding.UTF8 : _encoding ?? GetSystemEncoding()).GetString(header.FileName);
 
             // Data part is not exists
             if (header.Length == 0)
