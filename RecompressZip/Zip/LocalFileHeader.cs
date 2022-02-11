@@ -189,11 +189,19 @@ namespace RecompressZip.Zip
             header.Length = Length;
             header.FileNameLength = FileNameLength;
             header.ExtraLength = ExtraLength;
-            if (FileNameLength > 0)
+            if (FileName.Length == header.FileName.Length)
+            {
+                Array.Copy(FileName, header.FileName, FileName.Length);
+            }
+            else
             {
                 header.FileName = (byte[])FileName.Clone();
             }
-            if (ExtraLength > 0)
+            if (ExtraField.Length == header.ExtraField.Length)
+            {
+                Array.Copy(ExtraField, header.ExtraField, ExtraField.Length);
+            }
+            else
             {
                 header.ExtraField = (byte[])ExtraField.Clone();
             }
