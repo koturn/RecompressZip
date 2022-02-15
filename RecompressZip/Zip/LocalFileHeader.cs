@@ -60,6 +60,10 @@ namespace RecompressZip.Zip
         /// </summary>
         public byte[] ExtraField { get; set; }
         /// <summary>
+        /// Total size of this local file header.
+        /// </summary>
+        public uint TotalSize => 30u + FileNameLength + ExtraLength;
+        /// <summary>
         /// Indicates data of zip entry is encrypted or not.
         /// </summary>
         public bool IsEncrypted

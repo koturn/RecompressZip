@@ -195,6 +195,7 @@ namespace RecompressZip
             ap.Add('r', "replace-force", "Do the replacement even if the size of the recompressed data is larger than the size of the original data.");
             ap.Add('v', "verbose", "Allow to output to stdout from zopfli.dll.");
             ap.Add('E', "password-encoding", OptionType.RequiredArgument, "Encoding of password.", "ENCODING");
+            ap.Add('R', "remove-dir-entries", "Remove directory entries.");
             ap.Add('V', "verbose-more", "Allow to output more information to stdout from zopfli.dll.");
             ap.Add("no-block-split", "Don't splits the data in multiple deflate blocks with optimal choice for the block boundaries.");
             ap.Add("no-overwrite", "Don't overwrite PNG files and create images to new zip archive file or directory.");
@@ -230,6 +231,7 @@ namespace RecompressZip
                     ap.GetValue('p'),
                     ap.GetValue("password-encoding"),
                     ap.GetValue<bool>('f'),
+                    ap.GetValue<bool>('R'),
                     ap.GetValue<bool>("verify-crc32"),
                     !ap.GetValue<bool>("no-overwrite"),
                     ap.GetValue<bool>('r'),
@@ -487,8 +489,13 @@ namespace RecompressZip
             var resultList = taskList.Select(task =>
             {
                 var offset = (uint)writer.BaseStream.Position;
-
                 var (header, cryptHeader, compressedData, recompressedData) = task.Result;
+
+                if (execOptions.IsRemoveDirectoryEntries && header.Length == 0 && header.FileName[^1] == '/')
+                {
+                    return new CompressionResult(header, 0xffffffffu);
+                }
+
                 header.WriteTo(writer);
                 if (cryptHeader != null && header.IsEncrypted)
                 {
@@ -516,18 +523,25 @@ namespace RecompressZip
 
             var resultEnumerator = resultList.GetEnumerator();
             var centralDirOffset = writer.BaseStream.Position;
+            var numRecords = 0u;
+            var centralDirectorySize = 0u;
             while (signature == ZipSignature.CentralDirectoryFileHeader)
             {
                 var cdHeader = CentralDirectoryFileHeader.ReadFrom(reader);
                 resultEnumerator.MoveNext();
                 var cr = resultEnumerator.Current;
                 var lfHeader = cr.Header;
-                cdHeader.BitFlag = lfHeader.BitFlag;
-                cdHeader.Method = lfHeader.Method;
-                cdHeader.CompressedLength = lfHeader.CompressedLength;
-                cdHeader.Length = lfHeader.Length;
-                cdHeader.Offset = cr.Offset;
-                cdHeader.WriteTo(writer);
+                if (cr.Offset != 0xffffffffu)
+                {
+                    cdHeader.BitFlag = lfHeader.BitFlag;
+                    cdHeader.Method = lfHeader.Method;
+                    cdHeader.CompressedLength = lfHeader.CompressedLength;
+                    cdHeader.Length = lfHeader.Length;
+                    cdHeader.Offset = cr.Offset;
+                    cdHeader.WriteTo(writer);
+                    numRecords++;
+                    centralDirectorySize += cdHeader.TotalSize;
+                }
 
                 signature = ZipHeader.ReadSignature(reader);
             }
@@ -536,6 +550,9 @@ namespace RecompressZip
             {
                 var header = CentralDirectoryEndRecord.ReadFrom(reader);
                 header.Offset = (uint)centralDirOffset;
+                header.NumRecords = (ushort)numRecords;
+                header.TotalRecords = (ushort)numRecords;
+                header.CentralDirectorySize = (uint)centralDirectorySize;
                 header.WriteTo(writer);
             }
 

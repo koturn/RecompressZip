@@ -35,6 +35,10 @@ namespace RecompressZip
         /// </summary>
         public bool IsForceCompress { get; set; }
         /// <summary>
+        /// Remove directory entries or not.
+        /// </summary>
+        public bool IsRemoveDirectoryEntries { get; set; }
+        /// <summary>
         /// Verify CRC-32 value of zip entry or not.
         /// </summary>
         public bool IsVerifyCrc32 { get; set; }
@@ -66,6 +70,7 @@ namespace RecompressZip
         /// <param name="password">Password of zip archive.</param>
         /// <param name="passwordEncodingName">Encoding name of <paramref name="password"/>.</param>
         /// <param name="isForceCompress">Force compress non compressed data.</param>
+        /// <param name="isRemoveDirectoryEntries">Remove directory entries or not.</param>
         /// <param name="isVerifyCrc32">Verify CRC-32 value of zip entry or not.</param>
         /// <param name="isOverwrite">Overwrite original files.</param>
         /// <param name="isReplaceForce">Do the replacement even if the size of the recompressed data is larger than the size of the original data.</param>
@@ -76,6 +81,7 @@ namespace RecompressZip
             string? password = null,
             string? passwordEncodingName = null,
             bool isForceCompress = false,
+            bool isRemoveDirectoryEntries = false,
             bool isVerifyCrc32 = false,
             bool isOverwrite = false,
             bool isReplaceForce = false,
@@ -86,6 +92,7 @@ namespace RecompressZip
             Password = password;
             PasswordEncodingName = passwordEncodingName;
             IsForceCompress = isForceCompress;
+            IsRemoveDirectoryEntries = isRemoveDirectoryEntries;
             IsVerifyCrc32 = isVerifyCrc32;
             IsOverwrite = isOverwrite;
             IsReplaceForce = isReplaceForce;

@@ -23,7 +23,7 @@ namespace RecompressZip.Zip
         /// </summary>
         public ushort NumRecords { get; set; }
         /// <summary>
-        /// Number of central directory records on this disk (or 0xffff for ZIP64).
+        /// Total number of central directory records (or 0xffff for ZIP64).
         /// </summary>
         public ushort TotalRecords { get; set; }
         /// <summary>
@@ -42,6 +42,10 @@ namespace RecompressZip.Zip
         /// Comment.
         /// </summary>
         public byte[] Comment { get; set; }
+        /// <summary>
+        /// Total size of this central directory end record.
+        /// </summary>
+        public uint TotalSize => 22u + CommentLength;
 
 
         /// <summary>

@@ -89,6 +89,10 @@ namespace RecompressZip.Zip
         /// </summary>
         public byte[] Comment { get; set; }
         /// <summary>
+        /// Total size of this central directory file header.
+        /// </summary>
+        public uint TotalSize => 46u + FileNameLength + ExtraLength + CommentLength;
+        /// <summary>
         /// Indicates data of zip entry is encrypted or not.
         /// </summary>
         public bool IsEncrypted
