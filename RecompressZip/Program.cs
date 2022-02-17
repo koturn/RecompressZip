@@ -621,7 +621,7 @@ namespace RecompressZip
                     entryName,
                     (ushort)header.Method,
                     header.Method,
-                    header.CompressedLength == 0 ? "" : $" (Removed {compressedLength} bytes padding)",
+                    compressedLength == 0 ? "" : $" (Removed {compressedLength} bytes padding)",
                     dataDesciptorSize == 0 ? "" : $" (Removed {dataDesciptorSize} bytes data descriptor)");
 
                 return (header, cryptHeader, new byte[0], null);
