@@ -11,6 +11,11 @@ namespace RecompressZip.Zip
     public class CentralDirectoryEndRecord : ZipHeader
     {
         /// <summary>
+        /// Base size of the end of central directory record.
+        /// </summary>
+        public const uint BaseSize = 22u;
+
+        /// <summary>
         /// Number of this disk (or 0xffff for ZIP64).
         /// </summary>
         public ushort NumDisks { get; set; }
@@ -45,7 +50,7 @@ namespace RecompressZip.Zip
         /// <summary>
         /// Total size of this central directory end record.
         /// </summary>
-        public uint TotalSize => 22u + CommentLength;
+        public uint TotalSize => BaseSize + CommentLength;
 
 
         /// <summary>

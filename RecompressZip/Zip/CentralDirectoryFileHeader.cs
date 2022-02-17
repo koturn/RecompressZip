@@ -10,6 +10,11 @@ namespace RecompressZip.Zip
     public class CentralDirectoryFileHeader : ZipHeader
     {
         /// <summary>
+        /// Base size of the central directory file header.
+        /// </summary>
+        public const uint BaseSize = 46u;
+
+        /// <summary>
         /// Version made by.
         /// </summary>
         public ushort VerMadeBy { get; set; }
@@ -91,7 +96,7 @@ namespace RecompressZip.Zip
         /// <summary>
         /// Total size of this central directory file header.
         /// </summary>
-        public uint TotalSize => 46u + FileNameLength + ExtraLength + CommentLength;
+        public uint TotalSize => BaseSize + FileNameLength + ExtraLength + CommentLength;
         /// <summary>
         /// Indicates data of zip entry is encrypted or not.
         /// </summary>

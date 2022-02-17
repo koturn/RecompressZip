@@ -12,6 +12,11 @@ namespace RecompressZip.Zip
     public class LocalFileHeader : ZipHeader
     {
         /// <summary>
+        /// Base size of the local file header.
+        /// </summary>
+        public const uint BaseSize = 30u;
+
+        /// <summary>
         /// Version needed to extract (minimum).
         /// </summary>
         public ushort VerExtract { get; set; }
@@ -62,7 +67,7 @@ namespace RecompressZip.Zip
         /// <summary>
         /// Total size of this local file header.
         /// </summary>
-        public uint TotalSize => 30u + FileNameLength + ExtraLength;
+        public uint TotalSize => BaseSize + FileNameLength + ExtraLength;
         /// <summary>
         /// Indicates data of zip entry is encrypted or not.
         /// </summary>
