@@ -1035,7 +1035,7 @@ namespace RecompressZip
                 if (chunkType == ChunkNameIdat)
                 {
                     // Combine all IDAT data.
-                    var ims = new MemoryStream((int)dataLength);
+                    var ims = new MemoryStream((int)(reader.BaseStream.Length * 2));
                     do
                     {
                         var idatData = reader.ReadBytes((int)dataLength);
