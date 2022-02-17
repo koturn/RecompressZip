@@ -272,7 +272,7 @@ namespace RecompressZip
         private static bool IsZipFile(string zipFilePath)
         {
             Span<byte> buffer = stackalloc byte[4];
-            using (var fs = new FileStream(zipFilePath, FileMode.Open, FileAccess.Read, FileShare.Read))
+            using (var fs = File.OpenRead(zipFilePath))
             {
                 if (fs.Read(buffer) < buffer.Length)
                 {
@@ -307,7 +307,7 @@ namespace RecompressZip
         private static bool IsGZipFile(string zipFilePath)
         {
             Span<byte> buffer = stackalloc byte[3];
-            using (var fs = new FileStream(zipFilePath, FileMode.Open, FileAccess.Read, FileShare.Read))
+            using (var fs = File.OpenRead(zipFilePath))
             {
                 if (fs.Read(buffer) < buffer.Length)
                 {
@@ -341,7 +341,7 @@ namespace RecompressZip
         private static bool IsPngFile(string zipFilePath)
         {
             Span<byte> buffer = stackalloc byte[_pngSignature.Length];
-            using (var fs = new FileStream(zipFilePath, FileMode.Open, FileAccess.Read, FileShare.Read))
+            using (var fs = File.OpenRead(zipFilePath))
             {
                 if (fs.Read(buffer) < buffer.Length)
                 {
@@ -411,7 +411,7 @@ namespace RecompressZip
 
                 using (var ims = new MemoryStream((int)srcFileSize))
                 {
-                    using (var ifs = new FileStream(srcFilePath, FileMode.Open, FileAccess.Read, FileShare.Read))
+                    using (var ifs = File.OpenRead(srcFilePath))
                     {
                         ifs.CopyTo(ims);
                     }
@@ -880,7 +880,7 @@ namespace RecompressZip
         /// <returns><see cref="MemoryStream"/> of decompress data.</returns>
         private static MemoryStream DecompressGZipToMemoryStream(string gzipFilePath)
         {
-            using var ifs = new FileStream(gzipFilePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+            using var ifs = File.OpenRead(gzipFilePath);
             return DecompressGZipToMemoryStream(ifs);
         }
 
@@ -955,7 +955,7 @@ namespace RecompressZip
 
             using var oms = new MemoryStream((int)srcFileSize);
 
-            using (var ifs = new FileStream(srcFilePath, FileMode.Open, FileAccess.Read, FileShare.Read))
+            using (var ifs = File.OpenRead(srcFilePath))
             {
                 RecompressPng(ifs, oms, zopfliOptions, execOptions);
             }
