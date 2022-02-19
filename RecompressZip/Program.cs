@@ -640,18 +640,17 @@ namespace RecompressZip
             }
 
             // Is not deflate
-            if (header.Method != CompressionMethod.Deflate)
+            if (header.Method != CompressionMethod.Deflate
+                && (header.Method != CompressionMethod.NoCompression || !execOptions.IsForceCompress))
             {
                 _logger.Info(
-                    "[{0}] Non deflated entry: {1} (Method = {2}: {3})",
+                    "[{0}] Non deflated entry: {1} (Method = {2}: {3}) {4} KiB",
                     procIndex,
                     entryName,
                     (ushort)header.Method,
-                    header.Method);
-                if (header.Method != CompressionMethod.NoCompression || !execOptions.IsForceCompress)
-                {
-                    return (header, cryptHeader, compressedData, null);
-                }
+                    header.Method,
+                    ToKiB(header.CompressedLength));
+                return (header, cryptHeader, compressedData, null);
             }
 
             using (var decompressedMs = new MemoryStream((int)header.Length))
