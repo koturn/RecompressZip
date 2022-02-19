@@ -229,7 +229,7 @@ namespace RecompressZip
                     ap.GetValue<int>('n'),
                     ap.GetValue('e'),
                     ap.GetValue('p'),
-                    ap.GetValue("password-encoding"),
+                    ap.GetValue('E'),
                     ap.GetValue<bool>('f'),
                     ap.GetValue<bool>('R'),
                     ap.GetValue<bool>("verify-crc32"),
@@ -254,7 +254,11 @@ namespace RecompressZip
 
             Console.WriteLine("- - - Execution Parameters - - -");
             Console.WriteLine($"Number of Threads: {execOptions.NumberOfThreads}");
+            Console.WriteLine($"Encoding for non UTF-8 entry: {execOptions.EncodingName}");
             Console.WriteLine($"Password: {(execOptions.Password == null ? "Not specified" : "Specified")}");
+            Console.WriteLine($"Password encoding: {execOptions.PasswordEncodingName}");
+            Console.WriteLine($"Force compress: {execOptions.IsForceCompress}");
+            Console.WriteLine($"Remove directory entries: {execOptions.IsRemoveDirectoryEntries}");
             Console.WriteLine($"Verify CRC-32: {execOptions.IsVerifyCrc32}");
             Console.WriteLine($"Overwrite: {execOptions.IsOverwrite}");
             Console.WriteLine($"Replace Force: {execOptions.IsReplaceForce}");
