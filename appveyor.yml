@@ -29,6 +29,14 @@ build_script:
 
     del %ARTIFACTS_BASEDIR%\%ARTIFACTS_SUBDIR%\*.pdb
 
+    del %ARTIFACTS_BASEDIR%\%ARTIFACTS_SUBDIR%\System.Buffers.dll
+
+    del %ARTIFACTS_BASEDIR%\%ARTIFACTS_SUBDIR%\System.Memory.dll
+
+    del %ARTIFACTS_BASEDIR%\%ARTIFACTS_SUBDIR%\System.Numerics.Vectors.dll
+
+    del %ARTIFACTS_BASEDIR%\%ARTIFACTS_SUBDIR%\System.Runtime.CompilerServices.Unsafe.dll
+
     cd %ARTIFACTS_BASEDIR%
 
     7z a -mm=Deflate -mfb=258 -mpass=15 -r ..\%ARTIFACTS_NAME% %ARTIFACTS_SUBDIR%
