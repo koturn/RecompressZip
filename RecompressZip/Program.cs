@@ -1042,7 +1042,7 @@ namespace RecompressZip
                     do
                     {
                         var idatData = reader.ReadBytes((int)dataLength);
-                        ims.Write(idatData);
+                        ims.Write(idatData, 0, idatData.Length);
                         reader.BaseStream.Position += sizeof(uint);  // Skip CRC-32
 
                         dataLength = BinaryPrimitives.ReverseEndianness(reader.ReadUInt32());
