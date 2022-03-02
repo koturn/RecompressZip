@@ -88,7 +88,7 @@ namespace RecompressZip
                             // When there are no more items to be processed,
                             // note that we're done processing, and get out.
                             var task = _tasks.First;
-                            if (task == null)
+                            if (task is null)
                             {
                                 _delegatesQueuedOrRunning--;
                                 break;

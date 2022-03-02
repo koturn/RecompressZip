@@ -95,11 +95,11 @@ namespace RecompressZip
             ShowParameters(zopfliOptions, execOptions);
 
             Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
-            if (execOptions.EncodingName != null)
+            if (execOptions.EncodingName is not null)
             {
                 _encoding = Encoding.GetEncoding(execOptions.EncodingName);
             }
-            if (execOptions.PasswordEncodingName != null)
+            if (execOptions.PasswordEncodingName is not null)
             {
                 _passwordEncoding = Encoding.GetEncoding(execOptions.PasswordEncodingName);
             }
@@ -255,7 +255,7 @@ namespace RecompressZip
             Console.WriteLine("- - - Execution Parameters - - -");
             Console.WriteLine($"Number of Threads: {execOptions.NumberOfThreads}");
             Console.WriteLine($"Encoding for non UTF-8 entry: {execOptions.EncodingName}");
-            Console.WriteLine($"Password: {(execOptions.Password == null ? "Not specified" : "Specified")}");
+            Console.WriteLine($"Password: {(execOptions.Password is null ? "Not specified" : "Specified")}");
             Console.WriteLine($"Password encoding: {execOptions.PasswordEncodingName}");
             Console.WriteLine($"Force compress: {execOptions.IsForceCompress}");
             Console.WriteLine($"Remove directory entries: {execOptions.IsRemoveDirectoryEntries}");
@@ -420,7 +420,7 @@ namespace RecompressZip
                         ifs.CopyTo(ims);
                     }
                     ims.Position = 0;
-                    using (var ofs = dstFilePath == null ? (Stream)new MemoryStream((int)srcFileSize)
+                    using (var ofs = dstFilePath is null ? (Stream)new MemoryStream((int)srcFileSize)
                         : new FileStream(dstFilePath, FileMode.Create, FileAccess.Write, FileShare.Read))
                     {
                         entryCount = RecompressZip(ims, ofs, zopfliOptions, execOptions);
@@ -440,7 +440,7 @@ namespace RecompressZip
                     totalSw.ElapsedMilliseconds / 1000.0,
                     entryCount);
 
-                if (dstFilePath != null && execOptions.IsOverwrite)
+                if (dstFilePath is not null && execOptions.IsOverwrite)
                 {
                     File.Delete(srcFilePath);
                     File.Move(dstFilePath, srcFilePath);
@@ -448,7 +448,7 @@ namespace RecompressZip
             }
             catch
             {
-                if (dstFilePath != null && !isRecompressDone)
+                if (dstFilePath is not null && !isRecompressDone)
                 {
                     File.Delete(dstFilePath);
                 }
@@ -501,24 +501,24 @@ namespace RecompressZip
                 }
 
                 header.WriteTo(writer);
-                if (cryptHeader != null && header.IsEncrypted)
+                if (cryptHeader is not null && header.IsEncrypted)
                 {
                     writer.Write(cryptHeader);
                 }
 
-                if (recompressedData == null && compressedData == null)
+                if (recompressedData is null && compressedData is null)
                 {
                     throw new InvalidDataException($"Both {nameof(compressedData)} and {nameof(recompressedData)} is null");
                 }
 
-                if (recompressedData != null)
+                if (recompressedData is not null)
                 {
                     using (recompressedData)
                     {
                         writer.Write(SpanUtil.CreateSpan(recompressedData));
                     }
                 }
-                else if (compressedData != null)
+                else if (compressedData is not null)
                 {
                     writer.Write(compressedData);
                 }
@@ -577,7 +577,7 @@ namespace RecompressZip
         {
             var header = LocalFileHeader.ReadFrom(reader);
 
-            if (header.IsEncrypted && execOptions.Password == null)
+            if (header.IsEncrypted && execOptions.Password is null)
             {
                 Console.WriteLine("Encrypted entry is found.");
                 Console.Write("Please enter password: ");
@@ -591,7 +591,7 @@ namespace RecompressZip
                 cryptHeader = new byte[ZipCryptor.CryptHeaderSize];
                 reader.BaseStream.Read(cryptHeader);
             }
-            var cryptHeaderLength = cryptHeader == null ? 0 : cryptHeader.Length;
+            var cryptHeaderLength = cryptHeader is null ? 0 : cryptHeader.Length;
 
             var isExistsDataDescriptorSignature = false;
             var dataDesciptorSize = 0;
@@ -660,7 +660,7 @@ namespace RecompressZip
                 if (header.IsEncrypted)
                 {
                     var password = execOptions.Password;
-                    if (password == null)
+                    if (password is null)
                     {
                         throw new ArgumentNullException(nameof(execOptions.Password), "Encrypted entry is found but no password is specified.");
                     }
@@ -701,7 +701,7 @@ namespace RecompressZip
                 }
 
                 // Verify CRC-32.
-                if (execOptions.IsVerifyCrc32 || execOptions.Password != null)
+                if (execOptions.IsVerifyCrc32 || execOptions.Password is not null)
                 {
                     VerifyCrc32(SpanUtil.CreateSpan(decompressedMs), header.Crc32);
                 }
@@ -736,7 +736,7 @@ namespace RecompressZip
                     if (header.IsEncrypted && (byteLength < decryptedCompressedData.Length || execOptions.IsReplaceForce))
                     {
                         var password = execOptions.Password;
-                        if (password == null)
+                        if (password is null)
                         {
                             throw new ArgumentNullException(nameof(execOptions.Password), "Password must no be null to encrypt data.");
                         }
@@ -860,7 +860,7 @@ namespace RecompressZip
                 CalcDeflatedRate(srcFileSize, (long)recompressedData.ByteLength) * 100.0,
                 totalSw.ElapsedMilliseconds / 1000.0);
 
-            if (dstFilePath == null)
+            if (dstFilePath is null)
             {
                 return;
             }
@@ -974,7 +974,7 @@ namespace RecompressZip
                 CalcDeflatedRate(srcFileSize, recompressedData.Length) * 100.0,
                 totalSw.ElapsedMilliseconds / 1000.0);
 
-            if (dstFilePath == null)
+            if (dstFilePath is null)
             {
                 return;
             }
