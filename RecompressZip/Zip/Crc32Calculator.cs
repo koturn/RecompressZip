@@ -10,7 +10,7 @@ namespace RecompressZip.Zip
     /// <summary>
     /// CRC-32 calculation class.
     /// </summary>
-    public class Crc32Calculator
+    public static class Crc32Calculator
     {
         /// <summary>
         /// Initial value of CRC-32.
