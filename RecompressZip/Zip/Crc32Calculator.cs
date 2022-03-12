@@ -13,6 +13,11 @@ namespace RecompressZip.Zip
     public class Crc32Calculator
     {
         /// <summary>
+        /// Initial value of CRC-32.
+        /// </summary>
+        public const uint InitialValue = 0xffffffffU;
+
+        /// <summary>
         /// Cache of CRC-32 table.
         /// </summary>
         private static uint[]? _table;
@@ -57,7 +62,7 @@ namespace RecompressZip.Zip
         /// <param name="buf"><see cref="byte"/> data array.</param>
         /// <param name="crc">Intermidiate CRC-32 value.</param>
         /// <returns>Updated intermidiate CRC-32 value.</returns>
-        public static uint Update(byte[] buf, uint crc = 0xffffffff)
+        public static uint Update(byte[] buf, uint crc = InitialValue)
         {
             return Update(buf.AsSpan(), crc);
         }
@@ -71,7 +76,7 @@ namespace RecompressZip.Zip
         /// <param name="count">Data count of <paramref name="buf"/>.</param>
         /// <param name="crc">Intermidiate CRC-32 value.</param>
         /// <returns>Updated intermidiate CRC-32 value.</returns>
-        public static uint Update(byte[] buf, int offset, int count, uint crc = 0xffffffff)
+        public static uint Update(byte[] buf, int offset, int count, uint crc = InitialValue)
         {
             return Update(buf.AsSpan(offset, count), crc);
         }
@@ -84,7 +89,7 @@ namespace RecompressZip.Zip
         /// <param name="crc">Intermidiate CRC-32 value.</param>
         /// <returns>Updated intermidiate CRC-32 value.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static uint Update(ReadOnlySpan<byte> buf, uint crc = 0xffffffff)
+        public static uint Update(ReadOnlySpan<byte> buf, uint crc = InitialValue)
         {
             // This method call will be repplaced by calling UpdateSse41() or UpdateNaive() at JIT compiling time.
             return Sse41.IsSupported && Pclmulqdq.IsSupported ? UpdateSse41(buf, crc) : UpdateNaive(buf, crc);
@@ -97,7 +102,7 @@ namespace RecompressZip.Zip
         /// <param name="x">A value of <see cref="byte"/>.</param>
         /// <param name="crc">Intermidiate CRC-32 value.</param>
         /// <returns>Updated intermidiate CRC-32 value.</returns>
-        public static uint Update(byte x, uint crc = 0xffffffff)
+        public static uint Update(byte x, uint crc = InitialValue)
         {
             return GetTable()[(crc ^ x) & 0xff] ^ (crc >> 8);
         }
@@ -122,7 +127,7 @@ namespace RecompressZip.Zip
         /// <param name="buf"><see cref="Span{T}"/> of <see cref="byte"/> data.</param>
         /// <param name="crc">Intermidiate CRC-32 value.</param>
         /// <returns>Updated intermidiate CRC-32 value.</returns>
-        public static uint UpdateNaive(ReadOnlySpan<byte> buf, uint crc = 0xffffffff)
+        public static uint UpdateNaive(ReadOnlySpan<byte> buf, uint crc = InitialValue)
         {
             var crcTable = GetTable();
 
@@ -145,7 +150,7 @@ namespace RecompressZip.Zip
         /// <returns>Updated intermidiate CRC-32 value.</returns>
         /// <remarks><seealso href="https://www.intel.com/content/dam/www/public/us/en/documents/white-papers/fast-crc-computation-generic-polynomials-pclmulqdq-paper.pdf"/></remarks>
         /// <remarks><seealso href="https://chromium.googlesource.com/chromium/src/+/master/third_party/zlib/crc32_simd.c"/></remarks>
-        private static uint UpdateSse41(ReadOnlySpan<byte> buf, uint crc32 = 0xffffffff)
+        private static uint UpdateSse41(ReadOnlySpan<byte> buf, uint crc32 = InitialValue)
         {
             var len = buf.Length;
             if (len < 64)
@@ -225,7 +230,7 @@ namespace RecompressZip.Zip
                     }
 
                     // Fold 128-bits to 64-bits.
-                    var bwaFactor = Vector128.Create(0xffffffffu, 0x00000000u, 0xffffffffu, 0x00000000u);
+                    var bwaFactor = Vector128.Create(0xffffffffU, 0x00000000U, 0xffffffffU, 0x00000000U);
                     x1 = Sse2.Xor(
                         Sse2.ShiftRightLogical128BitLane(x1, 8),
                         Pclmulqdq.CarrylessMultiply(x1.AsUInt64(), k3k4, 0x10).AsUInt32());
