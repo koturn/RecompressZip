@@ -47,7 +47,7 @@ namespace RecompressZip.Zip
         /// <summary>
         /// Compute CRC-32 value.
         /// </summary>
-        /// <param name="buf"><see cref="Span{T}"/> of <see cref="byte"/> data.</param>
+        /// <param name="buf"><see cref="ReadOnlySpan{T}"/> of <see cref="byte"/> data.</param>
         /// <returns>CRC-32 value.</returns>
         public static uint Compute(ReadOnlySpan<byte> buf)
         {
@@ -85,7 +85,7 @@ namespace RecompressZip.Zip
         /// <para>Update intermidiate CRC-32 value.</para>
         /// <para>Use default value of <paramref name="crc"/> at first time.</para>
         /// </summary>
-        /// <param name="buf"><see cref="Span{T}"/> of <see cref="byte"/> data.</param>
+        /// <param name="buf"><see cref="ReadOnlySpan{T}"/> of <see cref="byte"/> data.</param>
         /// <param name="crc">Intermidiate CRC-32 value.</param>
         /// <returns>Updated intermidiate CRC-32 value.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -124,7 +124,7 @@ namespace RecompressZip.Zip
         /// <para>Use default value of <paramref name="crc"/> at first time.</para>
         /// <para>This method is implemented without SIMD instructions.</para>
         /// </summary>
-        /// <param name="buf"><see cref="Span{T}"/> of <see cref="byte"/> data.</param>
+        /// <param name="buf"><see cref="ReadOnlySpan{T}"/> of <see cref="byte"/> data.</param>
         /// <param name="crc">Intermidiate CRC-32 value.</param>
         /// <returns>Updated intermidiate CRC-32 value.</returns>
         public static uint UpdateNaive(ReadOnlySpan<byte> buf, uint crc = InitialValue)
@@ -145,11 +145,13 @@ namespace RecompressZip.Zip
         /// <para>Use default value of <paramref name="crc"/> at first time.</para>
         /// <para>This method is implemented with SSE4.1 and PCLMULQDQ.</para>
         /// </summary>
-        /// <param name="buf"><see cref="Span{T}"/> of <see cref="byte"/> data.</param>
+        /// <param name="buf"><see cref="ReadOnlySpan{T}"/> of <see cref="byte"/> data.</param>
         /// <param name="crc">Intermidiate CRC-32 value.</param>
         /// <returns>Updated intermidiate CRC-32 value.</returns>
-        /// <remarks><seealso href="https://www.intel.com/content/dam/www/public/us/en/documents/white-papers/fast-crc-computation-generic-polynomials-pclmulqdq-paper.pdf"/></remarks>
-        /// <remarks><seealso href="https://chromium.googlesource.com/chromium/src/+/master/third_party/zlib/crc32_simd.c"/></remarks>
+        /// <remarks>
+        /// <para><seealso href="https://www.intel.com/content/dam/www/public/us/en/documents/white-papers/fast-crc-computation-generic-polynomials-pclmulqdq-paper.pdf"/></para>
+        /// <para><seealso href="https://chromium.googlesource.com/chromium/src/+/master/third_party/zlib/crc32_simd.c"/></para>
+        /// </remarks>
         private static uint UpdateSse41(ReadOnlySpan<byte> buf, uint crc32 = InitialValue)
         {
             var len = buf.Length;
