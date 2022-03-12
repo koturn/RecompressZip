@@ -88,9 +88,9 @@ namespace RecompressZip.Zip
         protected void UpdateKeys(byte b)
         {
             var key = _key;
-            key[0] = Crc32Calculator.Update(b, key[0]);
+            key[0] = Crc32Util.Update(b, key[0]);
             key[1] = (key[1] + (key[0] & 0xff)) * 134775813 + 1;
-            key[2] = Crc32Calculator.Update((byte)(key[1] >> 24), key[2]);
+            key[2] = Crc32Util.Update((byte)(key[1] >> 24), key[2]);
         }
 
         /// <summary>

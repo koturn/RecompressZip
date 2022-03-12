@@ -1125,9 +1125,9 @@ namespace RecompressZip
             bw.Write(chunkTypeAscii);
             bw.Write(chunkData);
 
-            var crc = Crc32Calculator.Update(chunkTypeAscii);
-            crc = Crc32Calculator.Update(chunkData, crc);
-            crc = Crc32Calculator.Finalize(crc);
+            var crc = Crc32Util.Update(chunkTypeAscii);
+            crc = Crc32Util.Update(chunkData, crc);
+            crc = Crc32Util.Finalize(crc);
             bw.Write(BinaryPrimitives.ReverseEndianness(crc));
         }
 
@@ -1282,7 +1282,7 @@ namespace RecompressZip
         /// <param name="crc32">Expected CRC-32 value.</param>
         private static void VerifyCrc32(ReadOnlySpan<byte> data, uint crc32)
         {
-            var actualCrc32 = Crc32Calculator.Compute(data);
+            var actualCrc32 = Crc32Util.Compute(data);
             if (actualCrc32 != crc32)
             {
                 ThrowInvalidDataException($"Invalid CRC-32 value detected. Expected: {crc32:X8}, Actual: {actualCrc32:X8}");
