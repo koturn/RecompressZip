@@ -16,6 +16,10 @@ namespace RecompressZip.Zip
         /// Initial value of CRC-32.
         /// </summary>
         public const uint InitialValue = 0xffffffffU;
+        /// <summary>
+        /// Generator Polynomial of CRC-32.
+        /// </summary>
+        private const uint Polynomial = 0xedb88320U;
 
         /// <summary>
         /// Cache of CRC-32 table.
@@ -104,7 +108,7 @@ namespace RecompressZip.Zip
         /// <returns>Updated intermidiate CRC-32 value.</returns>
         public static uint Update(byte x, uint crc = InitialValue)
         {
-            return GetTable()[(crc ^ x) & 0xff] ^ (crc >> 8);
+            return GetTable()[(byte)crc ^ x] ^ (crc >> 8);
         }
 
         /// <summary>
@@ -134,7 +138,7 @@ namespace RecompressZip.Zip
             var c = crc;
             foreach (var x in buf)
             {
-                c = crcTable[(c ^ x) & 0xff] ^ (c >> 8);
+                c = crcTable[(byte)c ^ x] ^ (c >> 8);
             }
 
             return c;
@@ -294,7 +298,7 @@ namespace RecompressZip.Zip
                 var c = (uint)n;
                 for (var k = 0; k < 8; k++)
                 {
-                    c = (c >> 1) ^ (c & 1) * 0xedb88320U;
+                    c = (c >> 1) ^ ((uint)-(int)(c & 1) & Polynomial);
                 }
                 crcTable[n] = c;
             }
