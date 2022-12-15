@@ -25,7 +25,7 @@ namespace RecompressZip.Zip
         /// </summary>
         static ZipCryptor()
         {
-            InitialKey = new uint[] {305419896, 591751049, 878082192};
+            InitialKey = new uint[] {0x12345678, 0x23456789, 0x34567890};
         }
 
         /// <summary>
@@ -89,7 +89,7 @@ namespace RecompressZip.Zip
         {
             var key = _key;
             key[0] = Crc32Util.Update(b, key[0]);
-            key[1] = (key[1] + (key[0] & 0xff)) * 134775813 + 1;
+            key[1] = (key[1] + (key[0] & 0xff)) * 0x08088405 + 1;
             key[2] = Crc32Util.Update((byte)(key[1] >> 24), key[2]);
         }
 
