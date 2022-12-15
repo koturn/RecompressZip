@@ -674,7 +674,6 @@ namespace RecompressZip
                     {
                         ims.CopyTo(decompressedMs);
                     }
-                    header.Method = CompressionMethod.Deflate;
                 }
                 else
                 {
@@ -752,6 +751,10 @@ namespace RecompressZip
                 {
                     header.DeflateCompressionLevel = DeflateCompressionLevels.Maximum;
                     header.CompressedLength = (uint)byteLength + (uint)cryptHeaderLength;
+                    if (header.Method == CompressionMethod.NoCompression)
+                    {
+                        header.Method = CompressionMethod.Deflate;
+                    }
                     return (header, cryptHeader, null, recompressedData);
                 }
                 else
