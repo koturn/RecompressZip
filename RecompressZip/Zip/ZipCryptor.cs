@@ -97,10 +97,11 @@ namespace RecompressZip.Zip
         /// Get one byte for xor operation from <see cref="_key"/>.
         /// </summary>
         [Pure]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         protected byte GetDecryptByte()
         {
             var k = (ushort)(_key[2] | 0x0002);
-            return (byte)(((k * (k ^ 0x0001)) >> 8) & 0xff);
+            return (byte)((k * (k ^ 0x0001)) >> 8);
         }
     }
 }
