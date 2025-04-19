@@ -33,22 +33,12 @@ namespace RecompressZip.Zip
         /// <summary>
         /// Crypt header.
         /// </summary>
-        public byte[] CryptHeader { get; }
+        public byte[] CryptHeader { get; } = new byte[CryptHeaderSize];
 
         /// <summary>
         /// ZipCrypt key.
         /// </summary>
-        private uint[] _key;
-
-
-        /// <summary>
-        /// Allocate memory for <see cref="CryptHeader"/> and <see cref="_key"/>, and initialize <see cref="_key"/>.
-        /// </summary>
-        public ZipCryptor()
-        {
-            CryptHeader = new byte[CryptHeaderSize];
-            _key = CreateInitialKey();
-        }
+        private readonly uint[] _key = CreateInitialKey();
 
 
         /// <summary>
