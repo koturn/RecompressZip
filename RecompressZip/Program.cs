@@ -11,7 +11,9 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Runtime.InteropServices;
+#if NETCOREAPP3_0_OR_GREATER
 using System.Runtime.Intrinsics.X86;
+#endif  // NETCOREAPP3_0_OR_GREATER
 using System.Security;
 using System.Text;
 using System.Threading.Tasks;
@@ -78,10 +80,12 @@ namespace RecompressZip
                 AppContext.BaseDirectory,
                 Environment.Is64BitProcess ? "x64" : "x86");
             SafeNativeMethods.AddDllDirectory(dllDir);
+#if NETCOREAPP3_0_OR_GREATER
             if (Avx2.IsSupported)
             {
                 SafeNativeMethods.AddDllDirectory(Path.Combine(dllDir, "avx2"));
             }
+#endif  // NETCOREAPP3_0_OR_GREATER
             SafeNativeMethods.SetDefaultDllDirectories(LoadLibrarySearchFlags.DefaultDirs);
         }
 
@@ -96,7 +100,9 @@ namespace RecompressZip
             var (targets, zopfliOptions, execOptions) = ParseCommadLineArguments(args);
             ShowParameters(zopfliOptions, execOptions);
 
+#if NETCOREAPP1_0_OR_GREATER
             Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+#endif  // NETCOREAPP1_0_OR_GREATER
             if (execOptions.EncodingName is not null)
             {
                 _encoding = Encoding.GetEncoding(execOptions.EncodingName);
@@ -277,6 +283,7 @@ namespace RecompressZip
         /// <returns>True if specified file is a zip archive file, otherwise false.</returns>
         private static bool IsZipFile(string zipFilePath)
         {
+#if NETCOREAPP2_1_OR_GREATER
             Span<byte> buffer = stackalloc byte[4];
             using (var fs = File.OpenRead(zipFilePath))
             {
@@ -285,6 +292,17 @@ namespace RecompressZip
                     return false;
                 }
             }
+#else
+            var buffer = new byte[4];
+            using (var fs = File.OpenRead(zipFilePath))
+            {
+                if (fs.Read(buffer, 0, buffer.Length) < buffer.Length)
+                {
+                    return false;
+                }
+            }
+#endif  // NETCOREAPP2_1_OR_GREATER
+
             return HasZipSignature(buffer);
         }
 
@@ -312,6 +330,7 @@ namespace RecompressZip
         /// <returns>True if specified file is a gzip compressed file, otherwise false.</returns>
         private static bool IsGZipFile(string zipFilePath)
         {
+#if NETCOREAPP2_1_OR_GREATER
             Span<byte> buffer = stackalloc byte[3];
             using (var fs = File.OpenRead(zipFilePath))
             {
@@ -320,6 +339,17 @@ namespace RecompressZip
                     return false;
                 }
             }
+#else
+            var buffer = new byte[3];
+            using (var fs = File.OpenRead(zipFilePath))
+            {
+                if (fs.Read(buffer, 0, buffer.Length) < buffer.Length)
+                {
+                    return false;
+                }
+            }
+#endif  // NETCOREAPP2_1_OR_GREATER
+
             return HasGZipSignature(buffer);
         }
 
@@ -346,6 +376,7 @@ namespace RecompressZip
         /// <returns>True if specified file is a gzip compressed file, otherwise false.</returns>
         private static bool IsPngFile(string zipFilePath)
         {
+#if NETCOREAPP2_1_OR_GREATER
             Span<byte> buffer = stackalloc byte[_pngSignature.Length];
             using (var fs = File.OpenRead(zipFilePath))
             {
@@ -354,6 +385,17 @@ namespace RecompressZip
                     return false;
                 }
             }
+#else
+            var buffer = new byte[_pngSignature.Length];
+            using (var fs = File.OpenRead(zipFilePath))
+            {
+                if (fs.Read(buffer, 0, buffer.Length) < buffer.Length)
+                {
+                    return false;
+                }
+            }
+#endif  // NETCOREAPP2_1_OR_GREATER
+
             return HasPngSignature(buffer);
         }
 
@@ -497,7 +539,7 @@ namespace RecompressZip
                 var offset = (uint)writer.BaseStream.Position;
                 var (header, cryptHeader, compressedData, recompressedData) = task.Result;
 
-                if (execOptions.IsRemoveDirectoryEntries && header.Length == 0 && header.FileName[^1] == '/')
+                if (execOptions.IsRemoveDirectoryEntries && header.Length == 0 && header.FileName[header.FileName.Length - 1] == '/')
                 {
                     return new CompressionResult(header, 0xffffffffu);
                 }
@@ -517,7 +559,11 @@ namespace RecompressZip
                 {
                     using (recompressedData)
                     {
+#if NETCOREAPP2_1_OR_GREATER
                         writer.Write(SpanUtil.CreateSpan(recompressedData));
+#else
+                        writer.Write(SpanUtil.CreateSpan(recompressedData).ToArray());
+#endif  // NETCOREAPP2_1_OR_GREATER
                     }
                 }
                 else if (compressedData is not null)
@@ -591,7 +637,7 @@ namespace RecompressZip
             if (header.IsEncrypted)
             {
                 cryptHeader = new byte[ZipCryptor.CryptHeaderSize];
-                reader.BaseStream.Read(cryptHeader);
+                reader.BaseStream.Read(cryptHeader, 0, cryptHeader.Length);
             }
             var cryptHeaderLength = cryptHeader is null ? 0 : cryptHeader.Length;
 
@@ -873,7 +919,12 @@ namespace RecompressZip
             if ((long)recompressedData.ByteLength < srcFileSize || execOptions.IsReplaceForce)
             {
                 using var ofs = new FileStream(dstFilePath, FileMode.Create, FileAccess.Write, FileShare.Read);
+#if NETCOREAPP2_1_OR_GREATER
                 ofs.Write(SpanUtil.CreateSpan(recompressedData));
+#else
+                var data = SpanUtil.CreateSpan(recompressedData).ToArray();
+                ofs.Write(data, 0, data.Length);
+#endif  // NETCOREAPP2_1_OR_GREATER
             }
             else if (srcFilePath != dstFilePath)
             {
@@ -902,8 +953,13 @@ namespace RecompressZip
             var pos = gzipCompressedStream.Position;
             gzipCompressedStream.Seek(-4, SeekOrigin.End);
 
+#if NETCOREAPP2_1_OR_GREATER
             Span<byte> buf = stackalloc byte[4];
             var nRead = gzipCompressedStream.Read(buf);
+#else
+            var buf = new byte[4];
+            var nRead = gzipCompressedStream.Read(buf, 0, buf.Length);
+#endif  // NETCOREAPP2_1_OR_GREATER
 
             gzipCompressedStream.Position = pos;
 
@@ -987,7 +1043,12 @@ namespace RecompressZip
             if (recompressedData.Length < srcFileSize || execOptions.IsReplaceForce)
             {
                 using var ofs = new FileStream(dstFilePath, FileMode.Create, FileAccess.Write, FileShare.Read);
+#if NETCOREAPP2_1_OR_GREATER
                 ofs.Write(recompressedData);
+#else
+                var data = recompressedData.ToArray();
+                ofs.Write(data, 0, data.Length);
+#endif  // NETCOREAPP2_1_OR_GREATER
             }
             else if (srcFilePath != dstFilePath)
             {
@@ -1018,12 +1079,21 @@ namespace RecompressZip
         /// <param name="execOptions">Options for execution.</param>
         private static void RecompressPng(BinaryReader reader, BinaryWriter writer, in ZopfliOptions zopfliOptions, ExecuteOptions execOptions)
         {
+#if NETCOREAPP2_1_OR_GREATER
             Span<byte> signature = stackalloc byte[8];
             Span<byte> chunkTypeData = stackalloc byte[4];
+#else
+            var signature = new byte[8];
+            var chunkTypeData = new byte[4];
+#endif  // NETCOREAPP2_1_OR_GREATER
             var buffer = new byte[81920];
             string? chunkType;
 
+#if NETCOREAPP2_1_OR_GREATER
             reader.Read(signature);
+#else
+            reader.Read(signature, 0, signature.Length);
+#endif  // NETCOREAPP2_1_OR_GREATER
             if (!HasPngSignature(signature))
             {
                 ThrowInvalidDataException("First eight byte of data stream isn't PNG signature");
@@ -1034,7 +1104,11 @@ namespace RecompressZip
             {
                 var dataLength = BinaryPrimitives.ReverseEndianness(reader.ReadUInt32());
 
+#if NETCOREAPP2_1_OR_GREATER
                 if (reader.Read(chunkTypeData) < chunkTypeData.Length)
+#else
+                if (reader.Read(chunkTypeData, 0, chunkTypeData.Length) < chunkTypeData.Length)
+#endif  // NETCOREAPP2_1_OR_GREATER
                 {
                     ThrowInvalidDataException("Failed to read chunk type.");
                 }
@@ -1051,7 +1125,11 @@ namespace RecompressZip
                         reader.BaseStream.Position += sizeof(uint);  // Skip CRC-32
 
                         dataLength = BinaryPrimitives.ReverseEndianness(reader.ReadUInt32());
+#if NETCOREAPP2_1_OR_GREATER
                         if (reader.Read(chunkTypeData) < chunkTypeData.Length)
+#else
+                        if (reader.Read(chunkTypeData, 0, chunkTypeData.Length) < chunkTypeData.Length)
+#endif  // NETCOREAPP2_1_OR_GREATER
                         {
                             ThrowInvalidDataException("Failed to read chunk type.");
                         }
@@ -1095,7 +1173,11 @@ namespace RecompressZip
         {
             using var oms = new MemoryStream((int)ims.Length);
 
+#if NET6_0_OR_GREATER
             using (var izs = new ZLibStream(ims, CompressionMode.Decompress, true))
+#else
+            using (var izs = new Ionic.Zlib.ZlibStream(ims, Ionic.Zlib.CompressionMode.Decompress, true))
+#endif  // NET6_0_OR_GREATER
             {
                 izs.CopyTo(oms);
             }
@@ -1127,8 +1209,13 @@ namespace RecompressZip
         private static void WriteChunk(BinaryWriter bw, ReadOnlySpan<byte> chunkTypeAscii, Span<byte> chunkData)
         {
             bw.Write(BinaryPrimitives.ReverseEndianness(chunkData.Length));
+#if NETCOREAPP2_1_OR_GREATER
             bw.Write(chunkTypeAscii);
             bw.Write(chunkData);
+#else
+            bw.Write(chunkTypeAscii.ToArray());
+            bw.Write(chunkData.ToArray());
+#endif  // NETCOREAPP2_1_OR_GREATER
 
             var crc = Crc32Util.Update(chunkTypeAscii);
             crc = Crc32Util.Update(chunkData, crc);

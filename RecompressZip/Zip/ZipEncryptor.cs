@@ -106,7 +106,7 @@ namespace RecompressZip.Zip
             {
                 ch[i] = Encrypt((byte)random.Next(0, 255));
             }
-            ch[^1] = Encrypt((byte)crc32);
+            ch[ch.Length - 1] = Encrypt((byte)crc32);
         }
 
         /// <summary>

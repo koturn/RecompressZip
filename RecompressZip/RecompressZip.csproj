@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFrameworks>net8.0;net481</TargetFrameworks>
     <LangVersion>13</LangVersion>
     <Authors>koturn</Authors>
     <Company>koturn</Company>
@@ -30,6 +30,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Condition="'$(TargetFramework)'=='net481'" Include="Iconic.Zlib.Netstandard" Version="1.0.0" />
     <PackageReference Include="NLog" Version="4.7.14" />
   </ItemGroup>
 

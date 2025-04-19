@@ -38,7 +38,11 @@ namespace RecompressZip.Zip
         public static ZipSignature ReadSignature(BinaryReader reader)
         {
             var signature = (ZipSignature)reader.ReadUInt32();
+#if NET5_0_OR_GREATER
             if (!Enum.IsDefined(signature))
+#else
+            if (!Enum.IsDefined(typeof(ZipSignature), signature))
+#endif  // NET5_0_OR_GREATER
             {
                 ThrowInvalidDataException(signature, reader.BaseStream.Position - sizeof(ZipSignature));
             }
