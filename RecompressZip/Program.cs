@@ -676,7 +676,7 @@ namespace RecompressZip
                     compressedLength == 0 ? "" : $" (Removed {compressedLength} bytes padding)",
                     dataDesciptorSize == 0 ? "" : $" (Removed {dataDesciptorSize} bytes data descriptor)");
 
-                return (header, cryptHeader, new byte[0], null);
+                return (header, cryptHeader, Array.Empty<byte>(), null);
             }
 
             var compressedData = reader.ReadBytes((int)header.CompressedLength - cryptHeaderLength);
