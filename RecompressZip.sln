@@ -4,7 +4,7 @@ VisualStudioVersion = 16.0.31105.61
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RecompressZip", "RecompressZip\RecompressZip.csproj", "{22DAFF02-2F18-40DF-AE3A-380FCE3243C9}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ArgumentParserSharp", "ArgumentParserSharp\ArgumentParserSharp\ArgumentParserSharp.csproj", "{C98AFD5C-06B5-4E29-BC70-7592765F8C2C}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Koturn.CommandLine", "Koturn.CommandLine\Koturn.CommandLine\Koturn.CommandLine.csproj", "{C98AFD5C-06B5-4E29-BC70-7592765F8C2C}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libzopfli", "libzopfli\libzopfli.vcxproj", "{084ED0ED-6B55-4734-B77E-42D7C24B6348}"
 EndProject

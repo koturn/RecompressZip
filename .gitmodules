@@ -4,6 +4,6 @@
 [submodule "Koturn.Zopfli"]
 	path = Koturn.Zopfli
 	url = https://github.com/koturn/Koturn.Zopfli
-[submodule "ArgumentParserSharp"]
-	path = ArgumentParserSharp
-	url = https://github.com/koturn/ArgumentParserSharp
+[submodule "Koturn.CommandLine"]
+	path = Koturn.CommandLine
+	url = https://github.com/koturn/Koturn.CommandLine

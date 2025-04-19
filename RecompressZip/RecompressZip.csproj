@@ -34,7 +34,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\ArgumentParserSharp\ArgumentParserSharp\ArgumentParserSharp.csproj" />
+    <ProjectReference Include="..\Koturn.CommandLine\Koturn.CommandLine\Koturn.CommandLine.csproj" />
     <ProjectReference Include="..\Koturn.Zopfli\Koturn.Zopfli\Koturn.Zopfli.csproj" />
   </ItemGroup>
 
