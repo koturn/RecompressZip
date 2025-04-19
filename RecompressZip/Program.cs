@@ -38,16 +38,16 @@ namespace RecompressZip
         /// <summary>
         /// Signature of PNG file.
         /// </summary>
-        private static readonly byte[] _pngSignature;
+        private static readonly byte[] _pngSignature = [0x89, (byte)'P', (byte)'N', (byte)'G', 0x0d, 0x0a, 0x1a, 0x0a];
         /// <summary>
         /// Logging instance.
         /// </summary>
-        private static readonly Logger _logger;
+        private static readonly Logger _logger = LogManager.GetCurrentClassLogger();
         /// <summary>
         /// <see cref="TaskFactory"/> with an upper limit on the number of tasks that can be executed concurrently
         /// by <see cref="LimitedConcurrencyLevelTaskScheduler"/>.
         /// </summary>
-        private static TaskFactory _taskFactory;
+        private static TaskFactory _taskFactory = new();
         /// <summary>
         /// Non UTF-8 name and comment of zip entries.
         /// </summary>
@@ -59,7 +59,7 @@ namespace RecompressZip
         /// <summary>
         /// Cache of password encoding.
         /// </summary>
-        private static Encoding _passwordEncoding;
+        private static Encoding _passwordEncoding = Encoding.Default;
 
 
         /// <summary>
@@ -76,11 +76,6 @@ namespace RecompressZip
                 UnsafeNativeMethods.AddDllDirectory(Path.Combine(dllDir, "avx2"));
             }
             UnsafeNativeMethods.SetDefaultDllDirectories(LoadLibrarySearchFlags.DefaultDirs);
-
-            _pngSignature = new byte[] { 0x89, (byte)'P', (byte)'N', (byte)'G', 0x0d, 0x0a, 0x1a, 0x0a };
-            _logger = LogManager.GetCurrentClassLogger();
-            _taskFactory = new TaskFactory();
-            _passwordEncoding = Encoding.Default;
         }
 
 

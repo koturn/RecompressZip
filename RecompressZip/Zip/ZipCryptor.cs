@@ -19,15 +19,7 @@ namespace RecompressZip.Zip
         /// <summary>
         /// Initial ZipCrypt key.
         /// </summary>
-        private static readonly uint[] InitialKey;
-
-        /// <summary>
-        /// Initialize <see cref="InitialKey"/>.
-        /// </summary>
-        static ZipCryptor()
-        {
-            InitialKey = new uint[] {0x12345678, 0x23456789, 0x34567890};
-        }
+        private static readonly uint[] InitialKey = [0x12345678, 0x23456789, 0x34567890];
 
         /// <summary>
         /// Clone and return <see cref="InitialKey"/>.
