@@ -4,17 +4,19 @@
     <OutputType>Exe</OutputType>
     <TargetFrameworks>net8.0;net481</TargetFrameworks>
     <LangVersion>13</LangVersion>
+    <Nullable>enable</Nullable>
+    <PublishTrimmed Condition="'$(TargetFramework)'!='net481'">True</PublishTrimmed>
+    <PublishAot Condition="'$(TargetFramework)'!='net481'">True</PublishAot>
     <Authors>koturn</Authors>
     <Company>koturn</Company>
+    <Description>Re-compressing tool with Zopfli Compression Algorithm for zip file.</Description>
     <Copyright>Copyright (C) 2021 koturn All Rights Reserverd.</Copyright>
-    <PackageLicenseFile>..\LICENSE</PackageLicenseFile>
     <PackageProjectUrl>https://github.com/koturn/RecompressZip</PackageProjectUrl>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
     <RepositoryUrl>https://github.com/koturn/RecompressZip</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <Version>1.4.4.0</Version>
-    <Description>Re-compressing tool with Zopfli Compression Algorithm for zip file.</Description>
-    <Nullable>enable</Nullable>
-    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
