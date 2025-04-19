@@ -5,11 +5,11 @@ environment:
   ARTIFACTS_BASEDIR: Artifacts
   ARTIFACTS_NAME_NET9: $(SOLUTION_NAME)-net9.0
   ARTIFACTS_NAME_NFW481: $(SOLUTION_NAME)-net481
+init:
+- cmd: '"C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\Tools\VsDevCmd.bat"'
 install:
 - cmd: >-
-    "C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\Tools\VsDevCmd.bat"
-
-    git submodule update --init
+    git submodule update --init --recursive
 
     nmake restore
 build_script:

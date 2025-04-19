@@ -55,4 +55,8 @@
     </None>
   </ItemGroup>
 
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+    <Exec Command="for %25%25p in (x86 x64) do (&#xD;&#xA;  if exist &quot;$(ProjectDir)..\Koturn.Zopfli\libzopfli\%25%25p\$(Configuration)&quot; (&#xD;&#xA;    xcopy /d /S /Y &quot;$(ProjectDir)..\Koturn.Zopfli\libzopfli\%25%25p\$(Configuration)\*.dll&quot; &quot;$(OutDir)%25%25p\&quot;&#xD;&#xA;  )&#xD;&#xA;)" />
+  </Target>
+
 </Project>

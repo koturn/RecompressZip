@@ -1,7 +1,8 @@
 SOLUTION_NAME = RecompressZip
 SOLUTION_FILE = $(SOLUTION_NAME).sln
 MAIN_PROJECT_FILE = $(SOLUTION_NAME)\$(SOLUTION_NAME).csproj
-PROJECT_DIRS = $(SOLUTION_NAME) Koturn.CommandLine Koturn.Zopfli
+PROJECT_DIRS = $(SOLUTION_NAME) Koturn.CommandLine\Koturn.CommandLine Koturn.Zopfli\Koturn.Zopfli
+CXX_PROJECT_DIRS = Koturn.Zopfli\libzopfli
 ARTIFACTS_BASEDIR = Artifacts
 ARTIFACTS_SUBDIR_BASENAME = $(SOLUTION_NAME)
 ARTIFACTS_BASENAME = $(SOLUTION_NAME)
@@ -17,9 +18,9 @@ RMDIR = rmdir /S /Q
 all: build
 
 build:
-	-dotnet build -c $(BUILD_CONFIG) $(SOLUTION_FILE)
-	msbuild /nologo /m /p:Configuration=$(BUILD_CONFIG);Platform="x64" libzopfli\libzopfli.vcxproj
-	msbuild /nologo /m /p:Configuration=$(BUILD_CONFIG);Platform="x86" libzopfli\libzopfli.vcxproj
+	msbuild /nologo /m /p:Configuration=$(BUILD_CONFIG);Platform="x64" Koturn.Zopfli\libzopfli\libzopfli.vcxproj
+	msbuild /nologo /m /p:Configuration=$(BUILD_CONFIG);Platform="x86" Koturn.Zopfli\libzopfli\libzopfli.vcxproj
+	dotnet build -c $(BUILD_CONFIG) $(MAIN_PROJECT_FILE)
 
 restore:
 	dotnet restore $(SOLUTION_FILE)
@@ -92,6 +93,9 @@ deploy-$(TARGET_NFW481):
 clean:
 	-for %%d in ( $(PROJECT_DIRS) ) do @( \
 		@$(RMDIR) %%d\bin %%d\obj 2>NUL \
+	)
+	-for %%d in ( $(CXX_PROJECT_DIRS) ) do @( \
+		@$(RMDIR) %%d\x86 %%d\x64 2>NUL \
 	)
 
 distclean: clean

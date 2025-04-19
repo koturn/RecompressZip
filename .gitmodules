@@ -1,6 +1,3 @@
-[submodule "zopfli"]
-	path = zopfli
-	url = https://github.com/google/zopfli
 [submodule "Koturn.Zopfli"]
 	path = Koturn.Zopfli
 	url = https://github.com/koturn/Koturn.Zopfli
