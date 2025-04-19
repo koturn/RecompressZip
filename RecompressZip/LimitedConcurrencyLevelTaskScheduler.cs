@@ -2,6 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+#if !NET8_0_OR_GREATER
+using RecompressZip.Internals;
+#endif
 
 
 namespace RecompressZip
@@ -42,9 +45,11 @@ namespace RecompressZip
         /// <param name="maxDegreeOfParallelism"></param>
         public LimitedConcurrencyLevelTaskScheduler(int maxDegreeOfParallelism)
         {
-            if (maxDegreeOfParallelism < 1) {
-                throw new ArgumentOutOfRangeException(nameof(maxDegreeOfParallelism));
-            }
+#if NET8_0_OR_GREATER
+            ArgumentOutOfRangeException.ThrowIfLessThan(maxDegreeOfParallelism, 1);
+#else
+            ThrowHelper.ThrowIfLessThan(maxDegreeOfParallelism, 1);
+#endif  // NET8_0_OR_GREATER
             MaximumConcurrencyLevel = maxDegreeOfParallelism;
         }
 
