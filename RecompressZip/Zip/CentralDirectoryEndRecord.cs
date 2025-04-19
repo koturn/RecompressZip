@@ -129,9 +129,9 @@ namespace RecompressZip.Zip
                 reader.ReadUInt32(),
                 reader.ReadUInt16());
 #if NETCOREAPP2_1_OR_GREATER
-            reader.BaseStream.Read(header.Comment);
+            reader.BaseStream.ReadExactly(header.Comment);
 #else
-            reader.BaseStream.Read(header.Comment, 0, header.Comment.Length);
+            reader.BaseStream.ReadExactly(header.Comment, 0, header.Comment.Length);
 #endif  // NETCOREAPP2_1_OR_GREATER
 
             return header;

@@ -252,11 +252,11 @@ namespace RecompressZip.Zip
                 reader.ReadUInt16());
             var baseStream = reader.BaseStream;
 #if NETCOREAPP2_1_OR_GREATER
-            baseStream.Read(header.FileName);
-            baseStream.Read(header.ExtraField);
+            baseStream.ReadExactly(header.FileName);
+            baseStream.ReadExactly(header.ExtraField);
 #else
-            baseStream.Read(header.FileName, 0, header.FileName.Length);
-            baseStream.Read(header.ExtraField, 0, header.ExtraField.Length);
+            baseStream.ReadExactly(header.FileName, 0, header.FileName.Length);
+            baseStream.ReadExactly(header.ExtraField, 0, header.ExtraField.Length);
 #endif  // NETCOREAPP2_1_OR_GREATER
 
             return header;

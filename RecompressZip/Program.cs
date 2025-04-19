@@ -637,7 +637,7 @@ namespace RecompressZip
             if (header.IsEncrypted)
             {
                 cryptHeader = new byte[ZipCryptor.CryptHeaderSize];
-                reader.BaseStream.Read(cryptHeader, 0, cryptHeader.Length);
+                reader.BaseStream.ReadExactly(cryptHeader, 0, cryptHeader.Length);
             }
             var cryptHeaderLength = cryptHeader is null ? 0 : cryptHeader.Length;
 
