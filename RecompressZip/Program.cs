@@ -1,3 +1,6 @@
+#if NET7_0_OR_GREATER
+#    define SUPPORT_LIBRARY_IMPORT
+#endif  // NET7_0_OR_GREATER
 using System;
 using System.Buffers.Binary;
 using System.Collections.Generic;
@@ -25,7 +28,11 @@ namespace RecompressZip
     /// <summary>
     /// Zip recompression tool.
     /// </summary>
+#if SUPPORT_LIBRARY_IMPORT
+    static partial class Program
+#else
     static class Program
+#endif  // SUPPORT_LIBRARY_IMPORT
     {
         /// <summary>
         /// Chunk type string of PNG, "IDAT".
@@ -1336,32 +1343,73 @@ namespace RecompressZip
         /// Native methods.
         /// </summary>
         [SuppressUnmanagedCodeSecurity]
-        internal class SafeNativeMethods
+#if SUPPORT_LIBRARY_IMPORT
+        internal static partial class SafeNativeMethods
+#else
+        internal static class SafeNativeMethods
+#endif  // SUPPORT_LIBRARY_IMPORT
         {
             /// <summary>
             /// Adds a directory to the process DLL search path.
             /// </summary>
             /// <param name="path">Path to DLL directory.</param>
-            /// <returns>True if success to set directory, otherwise false.</returns>
-            [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
-            [SuppressUnmanagedCodeSecurity]
-            public static extern bool AddDllDirectory([In] string path);
+            /// <returns>
+            /// <para>If the function succeeds, the return value is an opaque pointer that can be passed
+            /// to <see href="https://learn.microsoft.com/en-us/windows/desktop/api/libloaderapi/nf-libloaderapi-removedlldirectory">RemoveDllDirectory</see>
+            /// to remove the DLL from the process DLL search path.</para>
+            /// <para>If the function fails, the return value is zero.
+            /// To get extended error information, call <see cref="Marshal.GetLastWin32Error"/>.</para>
+            /// </returns>
+            /// <remarks>
+            /// <see href="https://learn.microsoft.com/en-us/windows/win32/api/libloaderapi/nf-libloaderapi-adddlldirectory"/>
+            /// </remarks>
+#if SUPPORT_LIBRARY_IMPORT
+            [LibraryImport("kernel32.dll", EntryPoint = nameof(AddDllDirectory), StringMarshalling = StringMarshalling.Utf16, SetLastError = true)]
+            public static partial IntPtr AddDllDirectory(string path);
+#else
+            [DllImport("kernel32.dll", EntryPoint = nameof(AddDllDirectory), ExactSpelling = true, CharSet = CharSet.Unicode, SetLastError = true)]
+            public static extern IntPtr AddDllDirectory(string path);
+#endif  // SUPPORT_LIBRARY_IMPORT
             /// <summary>
-            /// <para>Specifies a default set of directories to search when the calling process loads a DLL.</para>
-            /// <para>This search path is used when LoadLibraryEx is called with no <see cref="LoadLibrarySearchFlags"/> flags.</para>
+            /// Specifies a default set of directories to search when the calling process loads a DLL.
+            /// This search path is used when <see href="https://learn.microsoft.com/en-us/windows/desktop/api/libloaderapi/nf-libloaderapi-loadlibraryexa">LoadLibraryEx</see> is called
+            /// with no <see cref="LoadLibrarySearchFlags"/> flags.
             /// </summary>
-            /// <param name="directoryFlags">The directories to search. This parameter can be any combination of the following values.</param>
-            /// <returns>If the function succeeds, the return value is true.</returns>
-            [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
-            [SuppressUnmanagedCodeSecurity]
+            /// <param name="directoryFlags">The directories to search. This parameter can be any combination of the <see cref="LoadLibrarySearchFlags"/> values.</param>
+            /// <returns>
+            /// <para>If the function succeeds, the return value is true.</para>
+            /// <para>If the function fails, the return value is false. To get extended error information, call <see cref="Marshal.GetLastWin32Error"/>.</para>
+            /// </returns>
+            /// <remarks>
+            /// <see href="https://learn.microsoft.com/en-us/windows/win32/api/libloaderapi/nf-libloaderapi-setdefaultdlldirectories"/>
+            /// </remarks>
+#if SUPPORT_LIBRARY_IMPORT
+            [LibraryImport("kernel32.dll", EntryPoint = nameof(SetDefaultDllDirectories), SetLastError = true)]
+            [return: MarshalAs(UnmanagedType.Bool)]
+            public static partial bool SetDefaultDllDirectories(LoadLibrarySearchFlags directoryFlags);
+#else
+            [DllImport("kernel32.dll", EntryPoint = nameof(SetDefaultDllDirectories), ExactSpelling = true, SetLastError = true)]
+            [return: MarshalAs(UnmanagedType.Bool)]
             public static extern bool SetDefaultDllDirectories(LoadLibrarySearchFlags directoryFlags);
+#endif  // SUPPORT_LIBRARY_IMPORT
             /// <summary>
             /// Retrieves the current Windows ANSI code page identifier for the operating system.
             /// </summary>
-            /// <returns>If the function succeeds, the return value is true.</returns>
-            [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
-            [SuppressUnmanagedCodeSecurity]
+            /// <returns>Returns the current Windows ANSI code page (ACP) identifier for the operating system.
+            /// See <see href="https://learn.microsoft.com/en-us/windows/desktop/Intl/code-page-identifiers">Code Page Identifiers</see>
+            /// for a list of identifiers for Windows ANSI code pages and other code pages.</returns>
+            /// <remarks>
+            /// <para><see href="https://learn.microsoft.com/en-us/windows/win32/api/winnls/nf-winnls-getacp"/></para>
+            /// <para>The ANSI code pages can be different on different computers, or can be changed for a single computer, leading to data corruption.
+            /// For the most consistent results, applications should use UTF-8 or UTF-16 when possible.</para>
+            /// </remarks>
+#if SUPPORT_LIBRARY_IMPORT
+            [LibraryImport("kernel32.dll", EntryPoint = nameof(GetACP))]
+            public static partial uint GetACP();
+#else
+            [DllImport("kernel32.dll", EntryPoint = nameof(GetACP), ExactSpelling = true)]
             public static extern uint GetACP();
+#endif  // SUPPORT_LIBRARY_IMPORT
         }
 
         /// <summary>
