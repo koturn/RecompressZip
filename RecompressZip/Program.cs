@@ -70,12 +70,12 @@ namespace RecompressZip
             var dllDir = Path.Combine(
                 AppContext.BaseDirectory,
                 Environment.Is64BitProcess ? "x64" : "x86");
-            UnsafeNativeMethods.AddDllDirectory(dllDir);
+            SafeNativeMethods.AddDllDirectory(dllDir);
             if (Avx2.IsSupported)
             {
-                UnsafeNativeMethods.AddDllDirectory(Path.Combine(dllDir, "avx2"));
+                SafeNativeMethods.AddDllDirectory(Path.Combine(dllDir, "avx2"));
             }
-            UnsafeNativeMethods.SetDefaultDllDirectories(LoadLibrarySearchFlags.DefaultDirs);
+            SafeNativeMethods.SetDefaultDllDirectories(LoadLibrarySearchFlags.DefaultDirs);
         }
 
 
@@ -808,7 +808,7 @@ namespace RecompressZip
         /// <returns>System encoding.</returns>
         private static Encoding GetSystemEncoding()
         {
-            return _systemEncoding ??= Encoding.GetEncoding((int)UnsafeNativeMethods.GetACP());
+            return _systemEncoding ??= Encoding.GetEncoding((int)SafeNativeMethods.GetACP());
         }
 
         /// <summary>
@@ -1336,7 +1336,7 @@ namespace RecompressZip
         /// Native methods.
         /// </summary>
         [SuppressUnmanagedCodeSecurity]
-        internal class UnsafeNativeMethods
+        internal class SafeNativeMethods
         {
             /// <summary>
             /// Adds a directory to the process DLL search path.
@@ -1365,7 +1365,7 @@ namespace RecompressZip
         }
 
         /// <summary>
-        /// Flag values for <see cref="UnsafeNativeMethods.SetDefaultDllDirectories(LoadLibrarySearchFlags)"/>.
+        /// Flag values for <see cref="SafeNativeMethods.SetDefaultDllDirectories(LoadLibrarySearchFlags)"/>.
         /// </summary>
         [Flags]
         internal enum LoadLibrarySearchFlags
