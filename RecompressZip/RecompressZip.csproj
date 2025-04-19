@@ -33,7 +33,7 @@
 
   <ItemGroup>
     <PackageReference Condition="'$(TargetFramework)'=='net481'" Include="Iconic.Zlib.Netstandard" Version="1.0.0" />
-    <PackageReference Include="NLog" Version="4.7.14" />
+    <PackageReference Include="NLog" Version="5.4.0" />
   </ItemGroup>
 
   <ItemGroup>
