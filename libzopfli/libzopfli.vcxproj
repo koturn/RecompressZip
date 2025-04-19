@@ -105,22 +105,22 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
     <TargetName>zopfli</TargetName>
-    <OutDir>$(SolutionDir)RecompressZip\bin\$(Configuration)\net6.0-windows\x86\</OutDir>
+    <OutDir>$(ProjectDir)$(Platform)\$(Configuration)\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
     <TargetName>zopfli</TargetName>
-    <OutDir>$(SolutionDir)RecompressZip\bin\$(Configuration)\net6.0-windows\x86\</OutDir>
+    <OutDir>$(ProjectDir)$(Platform)\$(Configuration)\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
     <TargetName>zopfli</TargetName>
-    <OutDir>$(SolutionDir)RecompressZip\bin\$(Configuration)\net6.0-windows\$(Platform)\</OutDir>
+    <OutDir>$(ProjectDir)$(Platform)\$(Configuration)\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
     <TargetName>zopfli</TargetName>
-    <OutDir>$(SolutionDir)RecompressZip\bin\$(Configuration)\net6.0-windows\$(Platform)\</OutDir>
+    <OutDir>$(ProjectDir)$(Platform)\$(Configuration)\</OutDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -137,6 +137,11 @@
       <EnableUAC>false</EnableUAC>
       <ModuleDefinitionFile>libzopfli.def</ModuleDefinitionFile>
     </Link>
+    <PostBuildEvent>
+      <Command>for %%p in (net9.0 net481) do (
+  xcopy /S /Y $(ProjectDir)$(Platform)\$(Configuration)\*.dll $(ProjectDir)..\RecompressZip\bin\$(Configuration)\%%p\$(PlatformTarget)\
+)</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -157,6 +162,11 @@
       <EnableUAC>false</EnableUAC>
       <ModuleDefinitionFile>libzopfli.def</ModuleDefinitionFile>
     </Link>
+    <PostBuildEvent>
+      <Command>for %%p in (net9.0 net481) do (
+  xcopy /S /Y $(ProjectDir)$(Platform)\$(Configuration)\*.dll $(ProjectDir)..\RecompressZip\bin\$(Configuration)\%%p\$(PlatformTarget)\
+)</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -173,6 +183,11 @@
       <EnableUAC>false</EnableUAC>
       <ModuleDefinitionFile>libzopfli.def</ModuleDefinitionFile>
     </Link>
+    <PostBuildEvent>
+      <Command>for %%p in (net9.0 net481) do (
+  xcopy /S /Y $(ProjectDir)$(Platform)\$(Configuration)\*.dll $(ProjectDir)..\RecompressZip\bin\$(Configuration)\%%p\$(PlatformTarget)\
+)</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -193,6 +208,11 @@
       <EnableUAC>false</EnableUAC>
       <ModuleDefinitionFile>libzopfli.def</ModuleDefinitionFile>
     </Link>
+    <PostBuildEvent>
+      <Command>for %%p in (net9.0 net481) do (
+  xcopy /S /Y $(ProjectDir)$(Platform)\$(Configuration)\*.dll $(ProjectDir)..\RecompressZip\bin\$(Configuration)\%%p\$(PlatformTarget)\
+)</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
