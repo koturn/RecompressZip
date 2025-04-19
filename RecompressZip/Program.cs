@@ -707,11 +707,7 @@ namespace RecompressZip
                 var decryptedCompressedData = compressedData;
                 if (header.IsEncrypted)
                 {
-                    var password = execOptions.Password;
-                    if (password is null)
-                    {
-                        throw new ArgumentNullException(nameof(execOptions.Password), "Encrypted entry is found but no password is specified.");
-                    }
+                    var password = execOptions.Password ?? throw new ArgumentException("Encrypted entry is found but no password is specified.", nameof(execOptions));
                     decryptedCompressedData = ZipDecryptor.DecryptData(compressedData, password, _passwordEncoding, cryptHeader);
                 }
 
@@ -782,11 +778,7 @@ namespace RecompressZip
                     // Encrypt recompressed data if necessary.
                     if (header.IsEncrypted && (byteLength < decryptedCompressedData.Length || execOptions.IsReplaceForce))
                     {
-                        var password = execOptions.Password;
-                        if (password is null)
-                        {
-                            throw new ArgumentNullException(nameof(execOptions.Password), "Password must no be null to encrypt data.");
-                        }
+                        var password = execOptions.Password ?? throw new ArgumentException("Password must not be null to encrypt data.", nameof(execOptions));
                         var rdSpan = SpanUtil.CreateSpan(recompressedData);
                         ZipEncryptor.EncryptData(rdSpan, rdSpan, password, _passwordEncoding, cryptHeader);
                     }
