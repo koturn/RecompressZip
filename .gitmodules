@@ -1,9 +1,9 @@
 [submodule "zopfli"]
 	path = zopfli
 	url = https://github.com/google/zopfli
-[submodule "ZopfliSharp"]
-	path = ZopfliSharp
-	url = https://github.com/koturn/ZopfliSharp
+[submodule "Koturn.Zopfli"]
+	path = Koturn.Zopfli
+	url = https://github.com/koturn/Koturn.Zopfli
 [submodule "ArgumentParserSharp"]
 	path = ArgumentParserSharp
 	url = https://github.com/koturn/ArgumentParserSharp

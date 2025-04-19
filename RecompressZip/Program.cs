@@ -12,12 +12,11 @@ using System.Runtime.Intrinsics.X86;
 using System.Security;
 using System.Text;
 using System.Threading.Tasks;
-
-using RecompressZip.Zip;
-
 using ArgumentParserSharp;
 using NLog;
-using ZopfliSharp;
+using Koturn.Zopfli;
+using Koturn.Zopfli.Enums;
+using RecompressZip.Zip;
 
 
 namespace RecompressZip

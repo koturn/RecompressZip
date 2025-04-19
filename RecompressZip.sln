@@ -8,7 +8,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ArgumentParserSharp", "Argu
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libzopfli", "libzopfli\libzopfli.vcxproj", "{084ED0ED-6B55-4734-B77E-42D7C24B6348}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ZopfliSharp", "ZopfliSharp\ZopfliSharp\ZopfliSharp.csproj", "{6F180976-090C-4F33-BAD0-368B9EB40894}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Koturn.Zopfli", "Koturn.Zopfli\Koturn.Zopfli\Koturn.Zopfli.csproj", "{6F180976-090C-4F33-BAD0-368B9EB40894}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
