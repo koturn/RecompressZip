@@ -2,7 +2,9 @@
 using RecompressZip.Internals;
 
 
+#pragma warning disable IDE0130 // Namespace does not match folder structure
 namespace System.IO
+#pragma warning restore IDE0130 // Namespace does not match folder structure
 {
     /// <summary>
     /// Provides extension methods for compatibility.
