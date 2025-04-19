@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFrameworks>net8.0;net481</TargetFrameworks>
+    <TargetFrameworks>net9.0;net481</TargetFrameworks>
     <LangVersion>13</LangVersion>
     <Nullable>enable</Nullable>
     <PublishTrimmed Condition="'$(TargetFramework)'!='net481'">True</PublishTrimmed>
