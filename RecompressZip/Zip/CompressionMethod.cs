@@ -1,4 +1,4 @@
-﻿namespace RecompressZip.Zip
+namespace RecompressZip.Zip
 {
     /// <summary>
     /// <para>Compression Method Values</para>

@@ -1,4 +1,4 @@
-﻿using RecompressZip.Zip;
+using RecompressZip.Zip;
 
 
 namespace RecompressZip

@@ -1,4 +1,4 @@
-﻿namespace RecompressZip.Zip
+namespace RecompressZip.Zip
 {
     /// <summary>
     /// Compression levels for Bit 1 and Bit 2 of <see cref="GeneralPurpsoseBitFlags"/> of deflating.
