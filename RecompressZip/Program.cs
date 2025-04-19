@@ -15,6 +15,7 @@ using System.Threading.Tasks;
 using ArgumentParserSharp;
 using NLog;
 using Koturn.Zopfli;
+using Koturn.Zopfli.Checksums;
 using Koturn.Zopfli.Enums;
 using RecompressZip.Zip;
 

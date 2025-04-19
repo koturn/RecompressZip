@@ -2,6 +2,7 @@
 using System.Diagnostics.Contracts;
 using System.Text;
 using System.Runtime.CompilerServices;
+using Koturn.Zopfli.Checksums;
 
 
 namespace RecompressZip.Zip
