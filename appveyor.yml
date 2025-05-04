@@ -11,14 +11,14 @@ install:
 - cmd: >-
     git submodule update --init --recursive
 
-    nmake restore
+    nmake /nologo restore
 build_script:
 - cmd: >-
-    nmake
+    nmake /nologo
 
-    nmake deploy
+    nmake /nologo deploy
 
-    nmake deploy-net481
+    nmake /nologo deploy-net481
 test_script:
 - cmd: >-
     %ARTIFACTS_BASEDIR%\%ARTIFACTS_NAME_NET9%\%SOLUTION_NAME%.exe -h
