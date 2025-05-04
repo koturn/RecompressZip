@@ -5,8 +5,13 @@
     <TargetFrameworks>net9.0;net481</TargetFrameworks>
     <LangVersion>13</LangVersion>
     <Nullable>enable</Nullable>
+    <Prefer32Bit>false</Prefer32Bit>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <WarningLevel>8</WarningLevel>
     <PublishTrimmed Condition="'$(TargetFramework)'!='net481'">True</PublishTrimmed>
     <PublishAot Condition="'$(TargetFramework)'!='net481'">True</PublishAot>
+    <Title>RecompressZip</Title>
+    <Version>1.4.4.0</Version>
     <Authors>koturn</Authors>
     <Company>koturn</Company>
     <Description>Re-compressing tool with Zopfli Compression Algorithm for zip file.</Description>
@@ -15,20 +20,8 @@
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <RepositoryUrl>https://github.com/koturn/RecompressZip</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
-    <Version>1.4.4.0</Version>
+    <PackageTags>Windows;zopfli;zip;gzip</PackageTags>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-    <Prefer32Bit>false</Prefer32Bit>
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <WarningLevel>5</WarningLevel>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-    <Prefer32Bit>false</Prefer32Bit>
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <WarningLevel>5</WarningLevel>
   </PropertyGroup>
 
   <ItemGroup>
