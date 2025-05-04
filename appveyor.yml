@@ -1,4 +1,4 @@
-version: 1.4.4.{build}
+version: 1.5.0.{build}
 image: Visual Studio 2022
 environment:
   SOLUTION_NAME: RecompressZip
@@ -28,6 +28,6 @@ test_script:
     %ARTIFACTS_BASEDIR%\%ARTIFACTS_NAME_NET9%\%SOLUTION_NAME%.exe -Rf -b0 %ARTIFACTS_NAME_NFW481%.zip
 artifacts:
 - path: $(SOLUTION_NAME)-net9.0.zip
-  name: .NET 9 binary of $(SOLUTION_NAME)
+  name: .NET 9 binary
 - path: $(SOLUTION_NAME)-net481.zip
-  name: .NET Framework 4.8.1 binary of $(SOLUTION_NAME)
+  name: .NET Framework 4.8.1

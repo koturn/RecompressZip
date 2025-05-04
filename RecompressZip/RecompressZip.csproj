@@ -11,7 +11,7 @@
     <PublishTrimmed Condition="'$(TargetFramework)'!='net481'">True</PublishTrimmed>
     <PublishAot Condition="'$(TargetFramework)'!='net481'">True</PublishAot>
     <Title>RecompressZip</Title>
-    <Version>1.4.4.0</Version>
+    <Version>1.5.0</Version>
     <Authors>koturn</Authors>
     <Company>koturn</Company>
     <Description>Re-compressing tool with Zopfli Compression Algorithm for zip file.</Description>
