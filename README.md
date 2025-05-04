@@ -1,6 +1,8 @@
 RecompressZip
 =============
 
+[![.NET](https://github.com/koturn/RecompressZip/actions/workflows/dotnet.yml/badge.svg?branch=main)](https://github.com/koturn/RecompressZip/actions/workflows/dotnet.yml)
+
 [![Test status](https://ci.appveyor.com/api/projects/status/x1jhkjn2phi3gh5e/branch/main?svg=true)](https://ci.appveyor.com/project/koturn/recompresszip/branch/main "AppVeyor | koturn/RecompressPng")
 
 Zip archive recompressor with Google's zopfli library.
