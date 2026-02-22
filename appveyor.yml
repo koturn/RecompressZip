@@ -3,7 +3,7 @@ image: Visual Studio 2022
 environment:
   SOLUTION_NAME: RecompressZip
   ARTIFACTS_BASEDIR: Artifacts
-  ARTIFACTS_NAME_NET9: $(SOLUTION_NAME)-net9.0
+  ARTIFACTS_NAME_NET9: $(SOLUTION_NAME)-net10.0
   ARTIFACTS_NAME_NFW481: $(SOLUTION_NAME)-net481
 init:
 - cmd: '"C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\Tools\VsDevCmd.bat"'
@@ -27,7 +27,7 @@ test_script:
 
     %ARTIFACTS_BASEDIR%\%ARTIFACTS_NAME_NET9%\%SOLUTION_NAME%.exe -Rf -b0 %ARTIFACTS_NAME_NFW481%.zip
 artifacts:
-- path: $(SOLUTION_NAME)-net9.0.zip
-  name: .NET 9 binary
+- path: $(SOLUTION_NAME)-net10.0.zip
+  name: .NET 10 binary
 - path: $(SOLUTION_NAME)-net481.zip
   name: .NET Framework 4.8.1
