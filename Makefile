@@ -65,6 +65,21 @@ deploy-$(TARGET_NET10)$(SINGLE_SUFFIX):
 deploy-$(TARGET_NET10)$(AOT_SUFFIX):
 	-dotnet publish -c $(BUILD_CONFIG) -f $(TARGET_NET10) -r win-x64 --self-contained \
 		-p:PublishDir=..\$(ARTIFACTS_BASEDIR)\$(ARTIFACTS_SUBDIR_BASENAME)-$(TARGET_NET10)$(AOT_SUFFIX) \
+		-p:OptimizationPreference=Speed \
+		-p:InvariantGlobalization=true \
+		-p:StripSymbols=true \
+		-p:DebuggerSupport=false \
+		-p:EnableUnsafeBinaryFormatterSerialization=false \
+		-p:EventSourceSupport=false \
+		-p:HttpActivityPropagationSupport=false \
+		-p:IlcDisableReflection=true \
+		-p:IlcFoldIdenticalMethodBodies=true \
+		-p:IlcGenerateCompleteTypeMetadata=false \
+		-p:IlcGenerateStackTraceData=false \
+		-p:IlcOptimizationPreference=Speed \
+		-p:MetadataUpdaterSupport=false \
+		-p:RootAllApplicationAssemblies=false \
+		-p:UseSystemResourceKeys=true \
 		$(MAIN_PROJECT_FILE)
 	xcopy /d /S /Y "$(SOLUTION_NAME)\bin\$(BUILD_CONFIG)\$(TARGET_NET10)\x64\*.dll" "$(ARTIFACTS_BASEDIR)\$(ARTIFACTS_SUBDIR_BASENAME)-$(TARGET_NET10)$(AOT_SUFFIX)\x64\"
 	xcopy /d /S /Y "$(SOLUTION_NAME)\bin\$(BUILD_CONFIG)\$(TARGET_NET10)\x86\*.dll" "$(ARTIFACTS_BASEDIR)\$(ARTIFACTS_SUBDIR_BASENAME)-$(TARGET_NET10)$(AOT_SUFFIX)\x86\"
