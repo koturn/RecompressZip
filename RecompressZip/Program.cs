@@ -202,8 +202,8 @@ namespace RecompressZip
             ap.Add('p', "password", OptionType.RequiredArgument, "Specify password of zip archive", "PASSWORD");
             ap.Add('r', "replace-force", "Do the replacement even if the size of the recompressed data is larger than the size of the original data.");
             ap.Add('v', "verbose", "Allow to output to stdout from zopfli.dll.");
+            ap.Add('D', "no-dir-entries", "Remove directory entries.");
             ap.Add('E', "password-encoding", OptionType.RequiredArgument, "Encoding of password.", "ENCODING");
-            ap.Add('R', "remove-dir-entries", "Remove directory entries.");
             ap.Add('V', "verbose-more", "Allow to output more information to stdout from zopfli.dll.");
             ap.Add("no-block-split", "Don't splits the data in multiple deflate blocks with optimal choice for the block boundaries.");
             ap.Add("no-overwrite", "Don't overwrite PNG files and create images to new zip archive file or directory.");
@@ -239,7 +239,7 @@ namespace RecompressZip
                     ap.GetValue('p'),
                     ap.GetValue('E'),
                     ap.GetValue<bool>('f'),
-                    ap.GetValue<bool>('R'),
+                    ap.GetValue<bool>('D'),
                     ap.GetValue<bool>("verify-crc32"),
                     !ap.GetValue<bool>("no-overwrite"),
                     ap.GetValue<bool>('r'),
